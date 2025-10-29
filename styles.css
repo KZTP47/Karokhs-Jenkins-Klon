@@ -1,0 +1,312 @@
+/* ============================================
+   WINDOWS VISTA AERO FRUTIGER STYLE
+   ============================================ */
+
+body {
+    font-family: 'Segoe UI', 'Inter', sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(180deg, #C5E7FF 0%, #E8F4FF 50%, #F0F8FF 100%);
+    color: #003366;
+}
+
+.code-area {
+    font-family: 'Consolas', 'Monaco', monospace;
+    min-height: 200px;
+    background: #FFFFFF;
+    border: 1px solid #B8D4E8;
+    border-radius: 4px;
+}
+
+.modal-open {
+    overflow: hidden;
+}
+
+.spinner {
+    border: 3px solid rgba(76, 194, 255, 0.3);
+    border-radius: 50%;
+    border-top: 3px solid #4CC2FF;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Aero Glass Effect for Cards */
+.aero-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 102, 204, 0.15), 
+                0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+    backdrop-filter: blur(10px);
+}
+
+/* Glossy Buttons - Aero Style */
+.aero-button {
+    background: linear-gradient(180deg, #E3F2FD 0%, #BBDEFB 100%);
+    border: 1px solid #90CAF9;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 102, 204, 0.2),
+                0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    color: #1565C0;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.aero-button:hover {
+    background: linear-gradient(180deg, #E8F5FD 0%, #C5E3FB 100%);
+    box-shadow: 0 3px 6px rgba(0, 102, 204, 0.25),
+                0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    border-color: #64B5F6;
+}
+
+.aero-button:active {
+    background: linear-gradient(180deg, #BBDEFB 0%, #90CAF9 100%);
+    box-shadow: 0 1px 2px rgba(0, 102, 204, 0.3) inset;
+}
+
+/* Primary Action Buttons */
+.aero-button-primary {
+    background: linear-gradient(180deg, #64B5F6 0%, #42A5F5 50%, #2196F3 100%);
+    border: 1px solid #1E88E5;
+    color: #FFFFFF;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.aero-button-primary:hover {
+    background: linear-gradient(180deg, #6EC1FF 0%, #4DB0FF 50%, #2BA3FF 100%);
+    box-shadow: 0 3px 8px rgba(33, 150, 243, 0.4),
+                0 1px 0 rgba(255, 255, 255, 0.3) inset;
+}
+
+/* Success Buttons */
+.aero-button-success {
+    background: linear-gradient(180deg, #81C784 0%, #66BB6A 50%, #4CAF50 100%);
+    border: 1px solid #43A047;
+    color: #FFFFFF;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.aero-button-success:hover {
+    background: linear-gradient(180deg, #90D494 0%, #75C979 50%, #5CBF60 100%);
+}
+
+/* Warning Buttons */
+.aero-button-warning {
+    background: linear-gradient(180deg, #FFB74D 0%, #FFA726 50%, #FF9800 100%);
+    border: 1px solid #F57C00;
+    color: #FFFFFF;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.aero-button-warning:hover {
+    background: linear-gradient(180deg, #FFC166 0%, #FFB540 50%, #FFA51A 100%);
+}
+
+/* Danger Buttons */
+.aero-button-danger {
+    background: linear-gradient(180deg, #E57373 0%, #EF5350 50%, #F44336 100%);
+    border: 1px solid #E53935;
+    color: #FFFFFF;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.aero-button-danger:hover {
+    background: linear-gradient(180deg, #EE8484 0%, #F66361 50%, #F55549 100%);
+}
+
+/* Purple Buttons */
+.aero-button-purple {
+    background: linear-gradient(180deg, #BA68C8 0%, #AB47BC 50%, #9C27B0 100%);
+    border: 1px solid #8E24AA;
+    color: #FFFFFF;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.aero-button-purple:hover {
+    background: linear-gradient(180deg, #C678D2 0%, #B958C8 50%, #A93CBE 100%);
+}
+
+/* Info Buttons */
+.aero-button-info {
+    background: linear-gradient(180deg, #4DD0E1 0%, #26C6DA 50%, #00BCD4 100%);
+    border: 1px solid #00ACC1;
+    color: #FFFFFF;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.aero-button-info:hover {
+    background: linear-gradient(180deg, #5DDAEB 0%, #37D1E5 50%, #13CDDF 100%);
+}
+
+/* Gray Buttons */
+.aero-button-gray {
+    background: linear-gradient(180deg, #E0E0E0 0%, #BDBDBD 100%);
+    border: 1px solid #9E9E9E;
+    color: #424242;
+}
+
+.aero-button-gray:hover {
+    background: linear-gradient(180deg, #EEEEEE 0%, #CECECE 100%);
+}
+
+/* Input Fields - Aero Style */
+.aero-input {
+    background: linear-gradient(180deg, #FAFAFA 0%, #FFFFFF 100%);
+    border: 1px solid #B8D4E8;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0, 102, 204, 0.1) inset,
+                0 0 0 1px rgba(255, 255, 255, 0.8);
+    color: #003366;
+}
+
+.aero-input:focus {
+    outline: none;
+    border-color: #4CC2FF;
+    box-shadow: 0 0 0 3px rgba(76, 194, 255, 0.2),
+                0 1px 2px rgba(0, 102, 204, 0.1) inset;
+}
+
+/* Modal Backdrop */
+.aero-modal-backdrop {
+    background: rgba(100, 181, 246, 0.3);
+    backdrop-filter: blur(4px);
+}
+
+/* Modal Content */
+.aero-modal {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 248, 255, 0.95) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 102, 204, 0.25),
+                0 0 0 1px rgba(255, 255, 255, 0.9) inset;
+}
+
+/* Headers with Aero Gradient */
+.aero-header {
+    background: linear-gradient(180deg, #E3F2FD 0%, #BBDEFB 100%);
+    border-bottom: 1px solid #90CAF9;
+    box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
+}
+
+/* Text Colors */
+.aero-text-primary {
+    color: #1565C0;
+}
+
+.aero-text-secondary {
+    color: #0277BD;
+}
+
+.aero-text-muted {
+    color: #546E7A;
+}
+
+.aero-text-warning {
+    color: #F57C00;
+}
+
+.aero-text-success {
+    color: #43A047;
+}
+
+.aero-text-danger {
+    color: #E53935;
+}
+
+/* Status Badges */
+.aero-badge-success {
+    background: linear-gradient(180deg, #81C784 0%, #66BB6A 100%);
+    color: #FFFFFF;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+}
+
+.aero-badge-error {
+    background: linear-gradient(180deg, #E57373 0%, #EF5350 100%);
+    color: #FFFFFF;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 4px rgba(244, 67, 54, 0.3);
+}
+
+.aero-badge-info {
+    background: linear-gradient(180deg, #64B5F6 0%, #42A5F5 100%);
+    color: #FFFFFF;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
+}
+
+/* Glass Panel Effect */
+.aero-glass-panel {
+    background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.85) 0%, 
+                rgba(240, 248, 255, 0.75) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.12),
+                0 0 0 1px rgba(255, 255, 255, 0.9) inset;
+    backdrop-filter: blur(8px);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 14px;
+}
+
+::-webkit-scrollbar-track {
+    background: linear-gradient(90deg, #E3F2FD 0%, #BBDEFB 100%);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #90CAF9 0%, #64B5F6 100%);
+    border-radius: 10px;
+    border: 2px solid #E3F2FD;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #9DD4FF 0%, #6EC1FF 100%);
+}
+
+/* Divider Lines */
+.aero-divider {
+    border-color: #B8D4E8;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Website Testing Iframe */
+#test-website-iframe {
+    box-shadow: 0 8px 32px rgba(0, 102, 204, 0.3);
+    border: 2px solid #4CC2FF !important;
+}
+
+/* Website Integration Badge */
+.website-integration-badge {
+    background: linear-gradient(135deg, #4CC2FF 0%, #2196F3 100%);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
