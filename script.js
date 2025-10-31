@@ -1148,6 +1148,11 @@ except Exception as e:
                         <span class="text-xs aero-badge-info ml-2">${suitesInView.length}</span>
                     </div>
                     <div class="flex gap-2 mt-2">
+                        <button onclick="event.stopPropagation(); duplicateView('${view.id}')"
+                            class="aero-button-purple text-xs py-1 px-2 rounded transition duration-200 flex-1"
+                            title="Duplicate View">
+                             Duplicate
+                        </button>
                         <button onclick="event.stopPropagation(); deleteView('${view.id}')" 
                             class="aero-button-danger text-xs py-1 px-2 rounded transition duration-200 flex-1" 
                             title="Delete View">
@@ -1227,6 +1232,71 @@ except Exception as e:
             renderViews();
             closeAddViewModal();
             showMessage(`View "${name}" created`, 'success');
+        }
+
+        async function duplicateView(viewId) {
+            const originalView = views.find(v => v.id === viewId);
+            if (!originalView) {
+                showMessage('Original view not found!', 'error');
+                return;
+            }
+
+            const suitesInView = testSuites.filter(s => s.view_id === viewId);
+            
+            // 1. Ask the user if they want to duplicate the test suites as well.
+            let confirmMessage = `Duplicate the view "${originalView.name}"?`;
+            if (suitesInView.length > 0) {
+                confirmMessage += `\n\nThis view contains ${suitesInView.length} test suite(s). Do you want to duplicate these test suites into the new view?`;
+            }
+            const shouldDuplicateSuites = confirm(confirmMessage);
+
+            try {
+                // 2. Create the new view object.
+                const newViewId = 'view-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                const newView = {
+                    ...originalView,
+                    id: newViewId,
+                    name: `${originalView.name} (Copy)`
+                };
+
+                // 3. Save the new view.
+                views.push(newView);
+                saveViewsToStorage();
+
+                // 4. If confirmed, duplicate all test suites from the original view.
+                if (shouldDuplicateSuites && suitesInView.length > 0) {
+                    for (const originalSuite of suitesInView) {
+                        // Create a copy of the suite object
+                        const { id, ...suiteDataToCopy } = originalSuite;
+
+                        // Append "(Copy)" to the name
+                        suiteDataToCopy.name = `${originalSuite.name} (Copy)`;
+
+                        // Assign the new suite to our new view
+                        suiteDataToCopy.view_id = newViewId;
+
+                        // Reset run history for the new copy
+                        suiteDataToCopy.last_run_status = 'NEVER_RUN';
+                        suiteDataToCopy.last_run_time = null;
+                        suiteDataToCopy.last_run_log = '';
+                        
+                        // Save the new suite using the storage backend
+                        await currentStorage.saveSuite(suiteDataToCopy);
+                    }
+                }
+                
+                // 5. Refresh the UI and show a success message.
+                renderViews();
+                let successMessage = `View "${originalView.name}" duplicated.`;
+                if (shouldDuplicateSuites && suitesInView.length > 0) {
+                    successMessage += ` Copied ${suitesInView.length} test suite(s).`;
+                }
+                showMessage(successMessage, 'success');
+
+            } catch (error) {
+                console.error("View duplication error:", error);
+                showMessage("Failed to duplicate view: " + error.message, 'error');
+            }
         }
         
         function deleteView(viewId) {
@@ -1313,8 +1383,16 @@ except Exception as e:
                 const statusBadge = suite.last_run_status === 'SUCCESS' ? 'aero-badge-success' : 
                                   suite.last_run_status === 'FAILURE' ? 'aero-badge-error' : '';
                 const isWebsite = suite.language === 'website';
-                const languageDisplay = isWebsite ? '🌐 WEBSITE' : suite.language.toUpperCase();
-                const cardBorderColor = isWebsite ? 'border-blue-500' : 'border-blue-500';
+                
+                // *** MODIFICATION ***
+                // Check if it's a Visual Web Test (website + upload)
+                const isVisualWebTest = isWebsite && suite.website_method === 'upload';
+                
+                const languageDisplay = isVisualWebTest ? '✨ VISUAL WEB' : 
+                                       isWebsite ? '🌐 WEBSITE (URL)' : 
+                                       suite.language.toUpperCase();
+                                       
+                const cardBorderColor = isVisualWebTest ? 'border-purple-500' : 'border-blue-500';
                 
                 return `
                     <div class="aero-card p-6 border-l-4 ${cardBorderColor}">
@@ -1325,7 +1403,7 @@ except Exception as e:
                                 ${isWebsite && suite.website_method === 'url' ? `
                                     <p class="text-xs aero-text-muted mt-1">🔗 ${escapeHtml(suite.website_url || 'No URL')}</p>
                                 ` : ''}
-                                ${isWebsite && suite.website_method === 'upload' ? `
+                                ${isVisualWebTest ? `
                                     <p class="text-xs aero-text-success mt-1">📁 Uploaded site files</p>
                                 ` : ''}
                             </div>
@@ -1348,6 +1426,10 @@ except Exception as e:
                         ` : ''}
                         
                         <div class="flex justify-end space-x-2">
+                            <button onclick="duplicateSuite('${suite.id}')" 
+                                class="aero-button-purple text-sm font-semibold py-1 px-3 rounded transition">
+                                Duplicate
+                            </button>
                             <button onclick="runTestSuite('${suite.id}')" 
                                 class="aero-button-success text-sm font-semibold py-1 px-3 rounded transition">
                                 ▶ Run
@@ -1414,10 +1496,48 @@ except Exception as e:
             if (modal) modal.classList.add('hidden');
         }
 
+        // ============================================
+        // *** NEW EDIT LOGIC ***
+        // This function now acts as a router,
+        // deciding which editor modal to open.
+        // ============================================
         function editSuite(suiteId) {
-            editingSuiteId = suiteId;
             const suite = testSuites.find(s => s.id === suiteId);
-            if (!suite) return;
+            if (!suite) {
+                console.error("Suite not found:", suiteId);
+                showMessage("Error: Test suite not found.", 'error');
+                return;
+            }
+
+            // This is the logic you requested:
+            // If it's a 'website' language test AND it uses the 'upload' method,
+            // it was almost certainly made by the Visual Web Tester.
+            if (suite.language === 'website' && suite.website_method === 'upload') {
+                
+                // Check if the visual editor's function exists
+                if (typeof openVisualWebTesterForEdit === 'function') {
+                    openVisualWebTesterForEdit(suite);
+                } else {
+                    console.error("Visual Web Tester edit function not found. Opening standard editor as fallback.");
+                    showMessage("Visual editor function not found. Opening standard editor.", 'error');
+                    openNormalSuiteEditor(suite); // Fallback to normal editor
+                }
+                
+            } else {
+                // This is for all other test types:
+                // Python, Java, C#, Robot, or 'website' with 'url' method
+                openNormalSuiteEditor(suite);
+            }
+        }
+
+        // ============================================
+        // *** NEW FUNCTION ***
+        // This contains the logic from the *original*
+        // editSuite function, now repurposed to
+        // only open the standard editor.
+        // ============================================
+        function openNormalSuiteEditor(suite) {
+            editingSuiteId = suite.id; // Set the global editing ID
             
             // Helper function to safely set element value
             const setElementValue = (id, value) => {
@@ -1436,7 +1556,7 @@ except Exception as e:
             };
             
             setElementText('modal-title', 'Edit Test Suite');
-            setElementValue('suite-id', suiteId);
+            setElementValue('suite-id', suite.id);
             setElementValue('suite_name', suite.name);
             setElementValue('suite_description', suite.description);
             setElementValue('suite_language', suite.language);
@@ -1460,12 +1580,16 @@ except Exception as e:
                 if (logOptions) logOptions.classList.add('hidden');
             }
             
+            // Ensure the correct code editor view is shown
+            updateCodeEditor();
+
             // Load website integration data if applicable
             if (suite.language === 'website') {
                 document.getElementById('website-testing-config')?.classList.remove('hidden');
                 
                 const method = suite.website_method || 'url';
-                document.querySelector(`input[name="website-method"][value="${method}"]`).checked = true;
+                const methodRadio = document.querySelector(`input[name="website-method"][value="${method}"]`);
+                if (methodRadio) methodRadio.checked = true;
                 toggleWebsiteMethod();
                 
                 if (method === 'url') {
@@ -1483,7 +1607,7 @@ except Exception as e:
                     if (websiteFiles.css.length > 0) previewText += `✓ ${websiteFiles.css.length} CSS file(s) loaded<br>`;
                     if (websiteFiles.js.length > 0) previewText += `✓ ${websiteFiles.js.length} JS file(s) loaded<br>`;
                     if (preview) {
-                        preview.innerHTML = '<strong>Loaded Files:</strong><br>' + previewText;
+                        preview.innerHTML = '<strong>Loaded Files:</strong><br>' + (previewText || 'No files loaded');
                     }
                 }
             }
@@ -1567,11 +1691,17 @@ except Exception as e:
                 
                 if (method === 'url') {
                     suite.website_url = document.getElementById('website_url').value;
+                    // Clear file content if we switch to URL
+                    suite.website_html_content = null;
+                    suite.website_css_contents = [];
+                    suite.website_js_contents = [];
                 } else if (method === 'upload') {
                     // Store the uploaded file contents
                     suite.website_html_content = websiteFiles.html;
                     suite.website_css_contents = websiteFiles.css;
                     suite.website_js_contents = websiteFiles.js;
+                    // Clear URL if we switch to upload
+                    suite.website_url = '';
                 }
             }
             
@@ -1587,6 +1717,42 @@ except Exception as e:
             } catch (error) {
                 console.error("Save error:", error);
                 showMessage("Failed to save: " + error.message, 'error');
+            }
+        }
+
+        async function duplicateSuite(suiteId) {
+            if (!currentStorage) {
+                showMessage("Storage not initialized", 'error');
+                return;
+            }
+
+            // Find the original suite data from our local cache
+            const originalSuite = testSuites.find(s => s.id === suiteId);
+            if (!originalSuite) {
+                showMessage('Original suite not found to duplicate!', 'error');
+                return;
+            }
+            
+            // 1. Create a copy of the suite object using the spread syntax.
+            // 2. IMPORTANT: We remove the 'id' property. This tells the saveSuite
+            //    function that this is a NEW suite, so it will generate a new unique ID.
+            const { id, ...suiteDataToCopy } = originalSuite;
+
+            // 3. Append "(Copy)" to the name to avoid confusion.
+            suiteDataToCopy.name = `${originalSuite.name} (Copy)`;
+
+            // 4. Reset run history for the new copy.
+            suiteDataToCopy.last_run_status = 'NEVER_RUN';
+            suiteDataToCopy.last_run_time = null;
+            suiteDataToCopy.last_run_log = '';
+
+            try {
+                // 5. Use the existing saveSuite function to create the new suite.
+                await currentStorage.saveSuite(suiteDataToCopy);
+                showMessage("Test suite duplicated successfully!", 'success');
+            } catch (error) {
+                console.error("Duplication error:", error);
+                showMessage("Failed to duplicate suite: " + error.message, 'error');
             }
         }
 
@@ -2174,6 +2340,7 @@ ${logText}
         }
 
         function escapeHtml(text) {
+            if (text === null || typeof text === 'undefined') return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
@@ -2282,7 +2449,7 @@ Test Website Navigation
             const files = input.files;
             if (!files || files.length === 0) return;
             
-            const preview = document.getElementById('uploaded-files-preview');
+            const preview = document.getElementById('website-files-preview'); // Changed ID
             let previewText = '';
             
             if (type === 'html') {
@@ -2293,14 +2460,14 @@ Test Website Navigation
                 websiteFiles.css = [];
                 for (let file of files) {
                     const content = await readFileAsText(file);
-                    websiteFiles.css.push({ name: file.name, content });
+                    websiteFiles.css.push({ name: file.name, content }); // Store as object
                     previewText += `✓ CSS: ${file.name}<br>`;
                 }
             } else if (type === 'js') {
                 websiteFiles.js = [];
                 for (let file of files) {
                     const content = await readFileAsText(file);
-                    websiteFiles.js.push({ name: file.name, content });
+                    websiteFiles.js.push({ name: file.name, content }); // Store as object
                     previewText += `✓ JS: ${file.name}<br>`;
                 }
             }
@@ -2373,11 +2540,16 @@ Test Website Navigation
                     js: suite.website_js_contents || []
                 };
                 
+                // Temporarily swap global websiteFiles to build HTML
                 const originalFiles = websiteFiles;
                 websiteFiles = tempFiles;
                 websiteHTML = buildWebsiteHTML();
-                websiteFiles = originalFiles;
+                websiteFiles = originalFiles; // Restore
                 
+                if (!websiteHTML) {
+                     throw new Error('Failed to build website HTML from stored files.');
+                }
+
                 // Create a blob URL for the uploaded site
                 const blob = new Blob([websiteHTML], { type: 'text/html' });
                 websiteUrl = URL.createObjectURL(blob);
@@ -2393,21 +2565,25 @@ Test Website Navigation
             log += `\n[CREATING TEST ENVIRONMENT]\n`;
             log += `Creating iframe for website...\n`;
             
-            // Create iframe to load the website
-            const iframe = document.createElement('iframe');
-            iframe.id = 'test-website-iframe';
-            iframe.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; border:none; z-index:9999;';
-            iframe.src = websiteUrl;
+            // Find or create iframe
+            let iframe = document.getElementById('test-website-iframe');
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.id = 'test-website-iframe';
+                // Position it off-screen but available
+                iframe.style.cssText = 'position:absolute; top:-9999px; left:-9999px; width:1280px; height:720px; border:none; z-index:9999;';
+                document.body.appendChild(iframe);
+            }
             
-            // Add to document
-            document.body.appendChild(iframe);
+            iframe.src = websiteUrl;
             
             log += `[SUCCESS] Website loaded in test environment\n\n`;
             
             // Wait for iframe to load
-            await new Promise((resolve) => {
+            await new Promise((resolve, reject) => {
                 iframe.onload = resolve;
-                setTimeout(resolve, 3000); // Timeout after 3 seconds
+                iframe.onerror = () => reject(new Error('Iframe failed to load.'));
+                setTimeout(() => reject(new Error('Iframe load timeout.')), 5000);
             });
             
             log += `[EXECUTING TEST SCRIPT]\n`;
@@ -2417,62 +2593,31 @@ Test Website Navigation
                 if (suite.language === 'website' && suite.code) {
                     log += `Running Robot Framework tests...\n\n`;
                     
-                    // Initialize Robot Framework if needed
-                    await installRobotFramework();
-                    const pyodide = await initializePyodide();
-                    
-                    // Create a Python script that can interact with the iframe
-                    const pythonScript = `
-import sys
-from io import StringIO
-from robot import run_cli
-from robot.libraries.BuiltIn import BuiltIn
-
-# Capture output
-output = StringIO()
-sys.stdout = output
-sys.stderr = output
-
-# Define test file content
-test_content = """${suite.code.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"""
-
-# Write test to a file
-with open('/tmp/test.robot', 'w') as f:
-    f.write(test_content)
-
-try:
-    # Run the test
-    result = run_cli(['--outputdir', '/tmp', '--output', 'NONE', '--log', 'NONE', '--report', 'NONE', '/tmp/test.robot'], exit=False)
-    test_output = output.getvalue()
-    
-    # Return results by making the dictionary the last evaluated expression
-    {'status': 'PASS' if result == 0 else 'FAIL', 'output': test_output}
-except Exception as e:
-    # Return results in case of an error
-    {'status': 'FAIL', 'output': str(e) + '\\n' + output.getvalue()}
-`;
-                    
-                    const pyodideResult = await pyodide.runPythonAsync(pythonScript);
-                    const result = pyodideResult.toJs(); // Convert PyProxy to a JS object
+                    const result = await executeRobotFrameworkBrowser(suite.code);
                     
                     log += result.output || 'Test execution completed\n';
+                    if (result.error) {
+                        log += `[STDERR]\n${result.error}\n`;
+                    }
                     
-                    // Remove iframe
-                    iframe.remove();
-                    if (suite.website_method === 'upload') {
+                    // Clean up
+                    iframe.src = 'about:blank';
+                    if (suite.website_method === 'upload' && websiteUrl.startsWith('blob:')) {
                         URL.revokeObjectURL(websiteUrl);
                     }
                     
                     return {
-                        status: result.status || 'SUCCESS',
-                        log: log
+                        status: result.success ? 'SUCCESS' : 'FAILURE',
+                        log: log,
+                        output: result.output,
+                        error: result.error
                     };
                 }
                 
             } catch (error) {
                 log += `\n[ERROR] ${error.message}\n`;
-                iframe.remove();
-                if (suite.website_method === 'upload') {
+                iframe.src = 'about:blank';
+                if (suite.website_method === 'upload' && websiteUrl.startsWith('blob:')) {
                     URL.revokeObjectURL(websiteUrl);
                 }
                 throw error;
@@ -2482,12 +2627,10 @@ except Exception as e:
             log += `Closing test environment...\n`;
             
             // Clean up
-            setTimeout(() => {
-                iframe.remove();
-                if (suite.website_method === 'upload') {
-                    URL.revokeObjectURL(websiteUrl);
-                }
-            }, 2000);
+            iframe.src = 'about:blank';
+            if (suite.website_method === 'upload' && websiteUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(websiteUrl);
+            }
             
             return {
                 status: 'SUCCESS',
