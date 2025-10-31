@@ -371,3 +371,13 @@ body {
     transform: scale(1.02);
     box-shadow: 0 4px 12px rgba(0, 102, 204, 0.2);
 }
+
+/* ============================================
+   NEW VISUAL WEB TESTER STYLES
+   ============================================ */
+
+/* Style for highlighting a step being dropped on */
+.drag-over-item {
+    border-top: 2px solid #1E88E5;
+    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.2);
+}
