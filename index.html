@@ -28,30 +28,39 @@
 
         <div class="flex-1">
             <header class="mb-8 flex flex-col sm:flex-row justify-between items-center pb-4 aero-header">
-                <h1 class="text-4xl font-extrabold aero-text-primary mb-4 sm:mb-0">Karokh's Pipeline Test Manager</h1>
-                <div class="flex space-x-3 flex-wrap gap-2">
-                    <button onclick="openExecutionSettingsModal()"
-                        class="aero-button-warning py-2 px-4 rounded-lg shadow-lg transition duration-200">
-                        Execution Settings
+                <h1 class="text-4xl font-extrabold aero-text-primary mb-4 sm:mb-0">Karokh's Test Automation Manager</h1>
+                <div class="flex flex-col sm:flex-row flex-wrap gap-2">
+                    <!-- New Button Added Here -->
+                    <button onclick="openVisualWebTester()"
+                        class="aero-button-primary w-full sm:w-auto py-2 px-4 rounded-lg shadow-lg transition duration-200 order-first sm:order-none">
+                        ✨ Create Visual Web Test
                     </button>
-                    <button onclick="openSettingsModal()"
-                        class="aero-button-purple py-2 px-4 rounded-lg shadow-lg transition duration-200">
-                        Storage Settings
-                    </button>
-                    <button onclick="openAddSuiteModal()"
-                        class="aero-button-success py-2 px-4 rounded-lg shadow-lg transition duration-200">
-                        + Add New Test Suite
-                    </button>
-                    
-                    <label for="import-file-input" class="aero-button-info py-2 px-4 rounded-lg shadow-lg transition duration-200 cursor-pointer flex items-center">
-                        Import JSON
-                    </label>
-                    <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="importFromJSON(event)">
-                    
-                    <button onclick="exportToJSON()"
-                        class="aero-button-gray py-2 px-4 rounded-lg shadow-lg transition duration-200">
-                        Export JSON
-                    </button>
+                    <!-- End New Button -->
+
+                    <div class="flex space-x-3 flex-wrap gap-2">
+                        <button onclick="openExecutionSettingsModal()"
+                            class="aero-button-warning py-2 px-4 rounded-lg shadow-lg transition duration-200">
+                            Execution Settings
+                        </button>
+                        <button onclick="openSettingsModal()"
+                            class="aero-button-purple py-2 px-4 rounded-lg shadow-lg transition duration-200">
+                            Storage Settings
+                        </button>
+                        <button onclick="openAddSuiteModal()"
+                            class="aero-button-success py-2 px-4 rounded-lg shadow-lg transition duration-200">
+                            + Add New Test Suite
+                        </button>
+                        
+                        <label for="import-file-input" class="aero-button-info py-2 px-4 rounded-lg shadow-lg transition duration-200 cursor-pointer flex items-center">
+                            Import JSON
+                        </label>
+                        <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="importFromJSON(event)">
+                        
+                        <button onclick="exportToJSON()"
+                            class="aero-button-gray py-2 px-4 rounded-lg shadow-lg transition duration-200">
+                            Export JSON
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -79,8 +88,8 @@
             </div>
         </div>
     </div>
-<!-- Karokh Kappen Araf, Karokh Kappen Araf, Karokh Kappen Araf, Karokh Kappen Araf -->
-    <div id="add-view-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop">
+	<!-- signature: Karokh Kappen Araf, Karokh Kappen Araf, Karokh Kappen Araf, Karokh Kappen Araf -->
+<div id="add-view-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop">
         <div class="aero-modal p-6 w-full max-w-md">
             <h3 class="text-2xl font-bold mb-4 aero-text-primary">Create New View</h3>
             <form onsubmit="createView(event)">
@@ -411,6 +420,87 @@
         </div>
     </div>
 
+    <!-- ============================================ -->
+    <!-- NEW: Visual Web Tester Modal -->
+    <!-- ============================================ -->
+    <div id="visual-web-tester-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop modal-open">
+        <div class="aero-modal p-0 w-full max-w-[95vw] h-[90vh] flex flex-col">
+            <!-- Header -->
+            <header class="p-4 border-b aero-divider flex justify-between items-center flex-shrink-0">
+                <h2 class="text-2xl font-bold aero-text-primary">✨ Visual Web Tester</h2>
+                <div class="flex space-x-3">
+                    <button onclick="vwt_runTest()" class="aero-button-success py-2 px-4 rounded-lg">▶ Run Live Test</button>
+                    <button onclick="vwt_saveSuite()" class="aero-button-info py-2 px-4 rounded-lg">💾 Save as Test Suite</button>
+                    <button onclick="closeVisualWebTester()" class="aero-button-gray py-2 px-4 rounded-lg">Close</button>
+                </div>
+            </header>
+            
+            <!-- Main Content -->
+            <div class="flex-grow flex min-h-0">
+                <!-- Column 1: Config & Toolbox -->
+                <aside class="w-1/4 p-4 border-r aero-divider overflow-y-auto flex flex-col">
+                    <div class="flex-shrink-0">
+                        <h3 class="text-lg font-semibold aero-text-secondary mb-3">1. Load Website</h3>
+                        <div class="space-y-3 aero-glass-panel p-3 rounded">
+                            <div>
+                                <label class="block text-sm font-medium aero-text-secondary mb-1">HTML File (Required)</label>
+                                <input type="file" id="vwt-html-file" accept=".html,.htm" class="w-full aero-input p-2 rounded-lg text-sm" onchange="vwt_handleFileUpload(this, 'html')">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium aero-text-secondary mb-1">CSS Files (Optional)</label>
+                                <input type="file" id="vwt-css-files" accept=".css" multiple class="w-full aero-input p-2 rounded-lg text-sm" onchange="vwt_handleFileUpload(this, 'css')">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium aero-text-secondary mb-1">JavaScript Files (Optional)</label>
+                                <input type="file" id="vwt-js-files" accept=".js" multiple class="w-full aero-input p-2 rounded-lg text-sm" onchange="vwt_handleFileUpload(this, 'js')">
+                            </div>
+                            <div id="vwt-files-preview" class="text-xs aero-text-muted p-2 aero-modal rounded">
+                                Upload files to begin...
+                            </div>
+                            <button onclick="vwt_renderIframe()" class="aero-button-primary w-full text-sm py-1 px-3 rounded">
+                                Reload Preview
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex-shrink-0 mt-4">
+                        <h3 class="text-lg font-semibold aero-text-secondary mb-3">2. Add Steps</h3>
+                        <div id="vwt-toolbox" class="space-y-2">
+                            <!-- Toolbox items will be injected by visual-web-tester.js -->
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Column 2: Test Steps & Properties -->
+                <main class="w-1/4 p-4 border-r aero-divider flex flex-col overflow-y-hidden">
+                    <h3 class="text-lg font-semibold aero-text-secondary mb-3">3. Build Test</h3>
+                    <div id="vwt-canvas" class="droppable-area flex-grow overflow-y-auto p-2">
+                        <!-- Steps will be injected here -->
+                    </div>
+                    <div id="vwt-properties" class="flex-shrink-0 pt-4 border-t aero-divider min-h-[200px] overflow-y-auto">
+                        <!-- Properties panel will be injected here -->
+                    </div>
+                </main>
+
+                <!-- Column 3: Live Preview & Logs -->
+                <aside class="w-1/2 p-4 flex flex-col overflow-y-hidden">
+                    <h3 class="text-lg font-semibold aero-text-secondary mb-3">4. Preview & Run</h3>
+                    <div class="flex-grow border aero-divider rounded-lg overflow-hidden">
+                        <iframe id="vwt-iframe" class="w-full h-full" src="about:blank" title="Sandboxed Website Preview"></iframe>
+                    </div>
+                    <div class="flex-shrink-0 pt-4">
+                        <h4 class="text-md font-semibold aero-text-secondary mb-2">Live Test Logs</h4>
+                        <textarea id="vwt-logs" rows="8" class="w-full code-area p-3 rounded-lg font-mono text-sm" readonly placeholder="Test logs will appear here..."></textarea>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </div>
+    <!-- ============================================ -->
+    <!-- End of New Modal -->
+    <!-- ============================================ -->
+
+
     <div id="suite-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop modal-open"
          onclick="if (event.target.id === 'suite-modal') closeEditorModal()">
         <div class="aero-modal p-6 sm:p-8 w-full max-w-5xl max-h-[90vh] overflow-y-auto"
@@ -704,5 +794,7 @@
 
     <script src="script.js"></script>
     <script src="nocode-builder.js"></script>
+    <!-- Load the new file -->
+    <script src="visual-web-tester.js"></script>
 </body>
 </html>
