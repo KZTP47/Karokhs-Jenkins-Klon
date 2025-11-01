@@ -23,9 +23,14 @@ const availableSteps = [
         description: 'Types text into an input field.',
         params: [
             { key: 'selector', label: 'CSS Selector', type: 'text', placeholder: 'e.g., input[name="username"]' },
-            { key: 'text', label: 'Text to Input', type: 'text', placeholder: 'e.g., john_doe' }
+            // MODIFIED: Changed type to 'textarea' for multi-line input
+            { key: 'text', label: 'Text to Input', type: 'textarea', placeholder: 'e.g., john_doe' } 
         ],
-        template: (p) => `    Input Text    ${p.selector}    ${p.text}`
+        template: (p) => {
+            // MODIFIED: Robust multi-line Robot Framework generation using triple-double-quotes
+            const indentedText = p.text.replace(/^/gm, '    ');
+            return `    Input Text    ${p.selector}    """\n${indentedText}\n    """`;
+        }
     },
     {
         name: 'Choose File',
@@ -246,6 +251,7 @@ function renderCanvas() {
 
     testSteps.forEach((step, index) => {
         const stepEl = document.createElement('div');
+        const stepConfig = availableSteps.find(s => s.name === step.name);
         stepEl.className = `p-4 mb-2 rounded border-l-4 flex justify-between items-center no-code-step ${selectedStepIndex === index ? 'aero-button-primary' : 'aero-card'}`;
         stepEl.draggable = true;
         stepEl.dataset.index = index;
@@ -318,10 +324,15 @@ function renderPropertiesPanel() {
                 formHTML += `<option value="${option}" ${value === option ? 'selected' : ''}>${option}</option>`;
             });
             formHTML += `</select>`;
+        } else if (param.type === 'textarea') { // Handle textarea input for multi-line
+             formHTML += `<textarea 
+                placeholder="${param.placeholder || ''}"
+                oninput="updateStepParam(${selectedStepIndex}, '${param.key}', this.value)"
+                class="w-full aero-input p-2 rounded h-32">${escapeHtml(value)}</textarea>`;
         } else {
             formHTML += `<input type="${param.type}" 
                        placeholder="${param.placeholder || ''}"
-                       value="${value}"
+                       value="${escapeHtml(value)}"
                        oninput="updateStepParam(${selectedStepIndex}, '${param.key}', this.value)"
                        class="w-full aero-input p-2 rounded">`;
         }
@@ -387,6 +398,7 @@ function generateCode(browserOnly = false) {
     let removedStepsCount = 0;
 
     if (browserOnly) {
+        // These are incompatible with the BrowserLibrary (or native JS DOM calls) you built
         const incompatibleSteps = ['Go To URL', 'Choose File'];
         stepsToGenerate = testSteps.filter(step => !incompatibleSteps.includes(step.name));
         removedStepsCount = testSteps.length - stepsToGenerate.length;
@@ -424,3 +436,11 @@ function generateCode(browserOnly = false) {
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', initializeNoCodeBuilder);
+
+// Utility function to escape HTML for safe rendering (copied from script.js)
+function escapeHtml(text) {
+    if (text === null || typeof text === 'undefined') return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
