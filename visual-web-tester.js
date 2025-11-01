@@ -36,7 +36,8 @@ const vwt_availableSteps = [
         icon: '⌨️',
         params: [
             { key: 'selector', label: 'CSS Selector', type: 'text', placeholder: 'e.g., input[name="username"]' },
-            { key: 'text', label: 'Text to Input', type: 'text', placeholder: 'e.g., john_doe' }
+            // *** FIX 1: Changed type to 'textarea' to accept multi-line input ***
+            { key: 'text', label: 'Text to Input', type: 'textarea', placeholder: 'e.g., john_doe' }
         ],
         execute: (params, iframeWin, log) => {
             const el = iframeWin.document.querySelector(params.selector);
@@ -44,9 +45,16 @@ const vwt_availableSteps = [
             el.value = params.text;
             // Dispatch input event for frameworks
             el.dispatchEvent(new iframeWin.Event('input', { bubbles: true }));
-            log(`✓ Input text into ${params.selector}: ${params.text}`);
+            log(`✓ Input text into ${params.selector}: ${params.text.length > 50 ? params.text.substring(0, 50) + '...' : params.text}`);
         },
-        robot: (p) => `    Input Text    ${p.selector}    ${p.text}`
+        // *** FIX 2 & 3: Robust multi-line Robot Framework generation ***
+        robot: (p) => {
+            // Indent all lines of the text by 4 spaces (global, multi-line)
+            const indentedText = p.text.replace(/^/gm, '    '); 
+            // The template now properly wraps the text on a new line and indents it, 
+            // ensuring valid Robot Framework multi-line string syntax.
+            return `    Input Text    ${p.selector}    """\n${indentedText}\n    """`;
+        }
     },
     {
         name: 'Element Should Contain',
@@ -431,13 +439,22 @@ function vwt_renderPropertiesPanel() {
     stepConfig.params.forEach(param => {
         const value = step.params[param.key] || '';
         formHTML += `<div class="mb-3">
-            <label class="block text-sm font-medium aero-text-secondary mb-1">${param.label}</label>
-            <input type="${param.type}" 
+            <label class="block text-sm font-medium aero-text-secondary mb-1">${param.label}</label>`;
+
+        // Render a <textarea> for 'textarea' type
+        if (param.type === 'textarea') {
+            formHTML += `<textarea 
+                placeholder="${param.placeholder || ''}"
+                oninput="vwt_updateStepParam(vwt_selectedStepIndex, '${param.key}', this.value)"
+                class="w-full aero-input p-2 rounded h-32">${vwt_escapeHtml(value)}</textarea>`; 
+        } else {
+            formHTML += `<input type="${param.type}" 
                    placeholder="${param.placeholder || ''}"
                    value="${vwt_escapeHtml(value)}"
                    oninput="vwt_updateStepParam(vwt_selectedStepIndex, '${param.key}', this.value)"
-                   class="w-full aero-input p-2 rounded">
-        </div>`;
+                   class="w-full aero-input p-2 rounded">`;
+        }
+        formHTML += `</div>`;
     });
 
     propertiesPanel.innerHTML = formHTML;
@@ -640,3 +657,224 @@ function vwt_escapeHtml(text) {
     return div.innerHTML;
 }
 
+// ============================================
+// VWT LIVE RUNNER (FOR READ-ONLY EXECUTION)
+// ============================================
+
+let vwt_runnerSuite = null;
+
+/**
+ * Opens the simplified Live Runner modal for an existing visual test suite.
+ * @param {object} suite - The test suite object to run.
+ */
+function vwt_openLiveRunner(suite) {
+    if (!suite || suite.language !== 'website' || suite.website_method !== 'upload') {
+        vwt_runnerLog("Error: Invalid suite for Live Runner.");
+        return;
+    }
+    
+    vwt_runnerSuite = suite;
+    
+    // 1. Load visual steps
+    let steps = [];
+    if (suite.vwt_steps_json) {
+        try {
+            steps = JSON.parse(suite.vwt_steps_json);
+        } catch (e) {
+            vwt_runnerLog("Error: Failed to parse visual steps for runner.");
+        }
+    }
+    
+    // 2. Set up the Live Runner Modal UI
+    const modal = document.getElementById('vwt-live-runner-modal');
+    const logArea = document.getElementById('vwt-runner-logs');
+    const iframe = document.getElementById('vwt-runner-iframe');
+    const canvas = document.getElementById('vwt-runner-canvas');
+    
+    if (!modal || !logArea || !iframe || !canvas) {
+        console.error("VWT Live Runner modal elements not found.");
+        return;
+    }
+
+    // Reset UI
+    logArea.value = `Loaded suite "${suite.name}" for live execution.\n`;
+    iframe.src = 'about:blank'; // Clear old content
+
+    // 3. Render Read-Only Steps
+    vwt_renderRunnerCanvas(steps);
+    
+    // 4. Build and render the website preview
+    vwt_renderRunnerIframe(suite);
+
+    // 5. Open modal
+    modal.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+}
+
+/**
+ * Renders the test steps in the read-only runner canvas.
+ * @param {Array} steps - The list of visual steps.
+ */
+function vwt_renderRunnerCanvas(steps) {
+    const canvas = document.getElementById('vwt-runner-canvas');
+    canvas.innerHTML = '';
+    
+    if (steps.length === 0) {
+        canvas.innerHTML = `<div class="text-center aero-text-muted p-8">No steps defined for this test.</div>`;
+        return;
+    }
+
+    steps.forEach((step, index) => {
+        const stepConfig = vwt_availableSteps.find(s => s.name === step.name);
+        if (!stepConfig) return;
+
+        const stepEl = document.createElement('div');
+        // Use a non-interactive style
+        stepEl.className = `aero-card p-3 rounded border-l-4 border-blue-400 opacity-80`; 
+        stepEl.dataset.index = index;
+
+        stepEl.innerHTML = `
+            <div>
+                <span class="font-bold">${stepConfig.icon} ${index + 1}. ${step.name}</span>
+            </div>
+            <div class="text-xs aero-text-muted mt-1">
+                ${Object.entries(step.params).map(([key, value]) => `
+                    <strong>${key}:</strong> ${vwt_escapeHtml(String(value)).substring(0, 30)}${String(value).length > 30 ? '...' : ''}
+                `).join(' | ')}
+            </div>
+        `;
+        
+        canvas.appendChild(stepEl);
+    });
+}
+
+/**
+ * Builds and renders the website preview in the runner's iframe.
+ * @param {object} suite - The test suite containing website file content.
+ */
+function vwt_renderRunnerIframe(suite) {
+    const tempFiles = {
+        html: suite.website_html_content,
+        css: suite.website_css_contents || [],
+        js: suite.website_js_contents || []
+    };
+    
+    // Temporarily swap global vwt_files to use vwt_buildWebsiteHTML helper
+    const originalVwtFiles = vwt_files;
+    vwt_files = tempFiles;
+    const htmlContent = vwt_buildWebsiteHTML();
+    vwt_files = originalVwtFiles; // Restore
+
+    if (!htmlContent) {
+        vwt_runnerLog("Error: No HTML content to render in runner.");
+        return;
+    }
+    
+    const iframe = document.getElementById('vwt-runner-iframe');
+    iframe.src = 'about:blank'; // First, clear the src
+    iframe.srcdoc = htmlContent; // Set the content via srcdoc
+
+    vwt_runnerLog("Website preview reloaded in runner sandbox.");
+}
+
+/**
+ * Executes the live test run in the runner modal.
+ */
+async function vwt_runLiveTestFromRunner() {
+    if (!vwt_runnerSuite) {
+        vwt_runnerLog("Error: No test suite loaded.");
+        return;
+    }
+
+    vwt_runnerLog("--- Starting Live Test Run ---");
+    const iframe = document.getElementById('vwt-runner-iframe');
+    const logArea = document.getElementById('vwt-runner-logs');
+    const canvas = document.getElementById('vwt-runner-canvas');
+
+    if (!iframe.srcdoc) {
+        vwt_runnerLog("Error: No website loaded. Please reload preview.");
+        return;
+    }
+    const iframeWin = iframe.contentWindow;
+    const steps = JSON.parse(vwt_runnerSuite.vwt_steps_json || '[]');
+
+    // Clear and reload for a clean state
+    logArea.value = `Loaded suite "${vwt_runnerSuite.name}" for live execution.\n`;
+    vwt_renderRunnerIframe(vwt_runnerSuite); 
+
+    // Wait for the iframe to fully reload
+    await new Promise((resolve) => {
+        const listener = () => {
+            iframe.removeEventListener('load', listener);
+            resolve();
+        };
+        iframe.addEventListener('load', listener);
+    });
+    
+    vwt_runnerLog("Website reloaded. Starting test steps...");
+
+    for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        const stepConfig = vwt_availableSteps.find(s => s.name === step.name);
+        
+        vwt_runnerLog(`[Step ${i + 1}/${steps.length}] Running: ${step.name}`);
+        
+        try {
+            // Highlight the step being run in the read-only canvas
+            canvas.querySelectorAll('.aero-card').forEach(el => 
+                el.classList.toggle('border-blue-700', el.dataset.index == i)
+            );
+            
+            // A small delay to make the execution visible
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            // Use 'await' for async steps like 'Wait For Element'
+            // Pass the custom runner log function
+            await stepConfig.execute(step.params, iframeWin, vwt_runnerLog);
+
+        } catch (error) {
+            vwt_runnerLog(`--- ERROR at Step ${i + 1} ---`);
+            vwt_runnerLog(error.message);
+            vwt_runnerLog("--- Test Run Aborted ---");
+            // Clear step highlight
+            canvas.querySelectorAll('.aero-card').forEach(el => el.classList.remove('border-blue-700'));
+            return; // Stop execution on failure
+        }
+    }
+    
+    vwt_runnerLog("--- Test Run Finished Successfully ---");
+    // Clear final step highlight
+    canvas.querySelectorAll('.aero-card').forEach(el => el.classList.remove('border-blue-700'));
+}
+
+/**
+ * Custom log function for the Live Runner modal.
+ * @param {string} message - The message to log.
+ */
+function vwt_runnerLog(message) {
+    const logArea = document.getElementById('vwt-runner-logs');
+    if (logArea) {
+        logArea.value += `[${new Date().toLocaleTimeString()}] ${message}\n`;
+        logArea.scrollTop = logArea.scrollHeight;
+    }
+}
+
+/**
+ * Closes the Live Runner modal.
+ */
+function vwt_closeLiveRunner() {
+    const modal = document.getElementById('vwt-live-runner-modal');
+    if (modal) modal.classList.add('hidden');
+    document.body.classList.remove('modal-open');
+    vwt_runnerSuite = null; // Clear state
+    
+    // Clean up iframe content
+    const iframe = document.getElementById('vwt-runner-iframe');
+    if (iframe) {
+        iframe.src = 'about:blank';
+        iframe.srcdoc = '';
+    }
+}
+
+// Make the new function globally accessible from script.js
+window.vwt_openLiveRunner = vwt_openLiveRunner;
