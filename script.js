@@ -1055,8 +1055,8 @@ except Exception as e:
                     return;
                 }
             } else if (newConfig.type === 'customApi') {
-                const apiBaseUrl = document.getElementById('api-base-url');
-                const apiAuthHeader = document.getElementById('api-auth-header');
+                const apiBaseUrl = document.getElementById('custom-api-base-url');
+                const apiAuthHeader = document.getElementById('custom-api-auth-header');
                 
                 newConfig.apiConfig = {
                     baseUrl: apiBaseUrl ? apiBaseUrl.value : '',
@@ -2084,6 +2084,20 @@ ${logText}
                 showMessage('Suite not found', 'error');
                 return;
             }
+            
+            // *** NEW LOGIC: Reroute Visual Web Tests to the Live Runner ***
+            if (suite.language === 'website' && suite.website_method === 'upload') {
+                if (typeof vwt_openLiveRunner === 'function') {
+                    // This function will handle opening the new modal and starting the live run
+                    vwt_openLiveRunner(suite); 
+                    return;
+                } else {
+                    console.error("Visual Web Tester Live Runner function not found.");
+                    showMessage("Visual Runner not available. Running in standard modal as fallback.", 'warning');
+                    // Fallthrough to standard run modal if function is missing
+                }
+            }
+            // *** END NEW LOGIC ***
             
             document.getElementById('run-modal').classList.remove('hidden');
             document.getElementById('run-modal-content').textContent = 'Initializing...';
