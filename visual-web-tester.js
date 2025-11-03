@@ -9,25 +9,21 @@ let vwt_files = { html: null, css: [], js: [] };
 let vwt_steps = [];
 let vwt_selectedStepIndex = null;
 let vwt_dragStartIndex = null;
-let vwt_editingSuiteId = null; // *** NEW: To track if we are editing an existing suite
+let vwt_editingSuiteId = null; 
 
 // --- VWT Config ---
-// Simplified set of steps for the new visual builder
-// This is separate from the main nocode-builder.js steps
 const vwt_availableSteps = [
     {
         name: 'Click Element',
         description: 'Clicks an element.',
         icon: '🖱️',
         params: [{ key: 'selector', label: 'CSS Selector', type: 'text', placeholder: 'e.g., #submit-button' }],
-        // This template generates direct JS for live execution
         execute: (params, iframeWin, log) => {
             const el = iframeWin.document.querySelector(params.selector);
             if (!el) throw new Error(`Element not found: ${params.selector}`);
             el.click();
             log(`✓ Clicked element: ${params.selector}`);
         },
-        // This template generates Robot Framework code for saving
         robot: (p) => `    Click Element    ${p.selector}`
     },
     {
@@ -36,23 +32,17 @@ const vwt_availableSteps = [
         icon: '⌨️',
         params: [
             { key: 'selector', label: 'CSS Selector', type: 'text', placeholder: 'e.g., input[name="username"]' },
-            // *** FIX 1: Changed type to 'textarea' to accept multi-line input ***
             { key: 'text', label: 'Text to Input', type: 'textarea', placeholder: 'e.g., john_doe' }
         ],
         execute: (params, iframeWin, log) => {
             const el = iframeWin.document.querySelector(params.selector);
             if (!el) throw new Error(`Element not found: ${params.selector}`);
             el.value = params.text;
-            // Dispatch input event for frameworks
             el.dispatchEvent(new iframeWin.Event('input', { bubbles: true }));
             log(`✓ Input text into ${params.selector}: ${params.text.length > 50 ? params.text.substring(0, 50) + '...' : params.text}`);
         },
-        // *** FIX 2 & 3: Robust multi-line Robot Framework generation ***
         robot: (p) => {
-            // Indent all lines of the text by 4 spaces (global, multi-line)
             const indentedText = p.text.replace(/^/gm, '    '); 
-            // The template now properly wraps the text on a new line and indents it, 
-            // ensuring valid Robot Framework multi-line string syntax.
             return `    Input Text    ${p.selector}    """\n${indentedText}\n    """`;
         }
     },
@@ -90,7 +80,7 @@ const vwt_availableSteps = [
                     log(`✓ Waited for and found element: ${params.selector}`);
                     return;
                 }
-                await new Promise(resolve => setTimeout(resolve, 100)); // Poll every 100ms
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
             throw new Error(`Wait timed out after ${timeout}ms for element: ${params.selector}`);
         },
@@ -98,140 +88,85 @@ const vwt_availableSteps = [
     }
 ];
 
-// --- VWT Modal Management ---
+// --- VWT Modal Management (Creator) ---
 
-// This function is for CREATING a new test
 function openVisualWebTester() {
-    // Reset state for a new test
-    vwt_editingSuiteId = null; // *** NEW: Ensure we are in "create" mode
+    vwt_editingSuiteId = null;
     vwt_files = { html: null, css: [], js: [] };
     vwt_steps = [];
     vwt_selectedStepIndex = null;
-    
-    // Reset UI
-    vwt_updateFilesPreview(); // Use helper to set default message
+    vwt_updateFilesPreview();
     document.getElementById('vwt-iframe').src = 'about:blank';
-    document.getElementById('vwt-iframe').srcdoc = ''; // Clear srcdoc
+    document.getElementById('vwt-iframe').srcdoc = '';
     document.getElementById('vwt-logs').value = '';
     document.getElementById('vwt-html-file').value = '';
     document.getElementById('vwt-css-files').value = '';
     document.getElementById('vwt-js-files').value = '';
-
     vwt_initializeToolbox();
     vwt_renderCanvas();
     vwt_renderPropertiesPanel();
-
     document.getElementById('visual-web-tester-modal').classList.remove('hidden');
     document.body.classList.add('modal-open');
 }
 
-// *** NEW ***
-// This function is for EDITING an existing test
 function openVisualWebTesterForEdit(suite) {
     if (!suite) return;
-
-    // 1. Set editing state
     vwt_editingSuiteId = suite.id;
-
-    // 2. Load files from suite object
     vwt_files.html = suite.website_html_content || null;
     vwt_files.css = suite.website_css_contents || [];
     vwt_files.js = suite.website_js_contents || [];
-
-    // 3. Load steps from suite object (from the JSON we will save)
     vwt_selectedStepIndex = null;
-    if (suite.vwt_steps_json) {
-        try {
-            vwt_steps = JSON.parse(suite.vwt_steps_json);
-        } catch (e) {
-            console.error("Failed to parse vwt_steps_json:", e);
-            vwt_steps = [];
-            vwt_log("Error: Could not load visual steps. Starting with a blank canvas.");
-        }
-    } else {
+    try {
+        vwt_steps = suite.vwt_steps_json ? JSON.parse(suite.vwt_steps_json) : [];
+    } catch (e) {
+        console.error("Failed to parse vwt_steps_json:", e);
         vwt_steps = [];
-        vwt_log("Warning: This test suite was saved without visual steps. Starting with a blank canvas.");
     }
-
-    // 4. Update UI
     vwt_initializeToolbox();
-    vwt_updateFilesPreview(); // Update file preview text
+    vwt_updateFilesPreview();
     vwt_renderCanvas();
     vwt_renderPropertiesPanel();
-    vwt_renderIframe(); // Load the website preview
-    
+    vwt_renderIframe();
     const logArea = document.getElementById('vwt-logs');
     if(logArea) logArea.value = `Loaded suite "${suite.name}" for editing.\n`;
-
-    // 5. Open modal
     document.getElementById('visual-web-tester-modal').classList.remove('hidden');
     document.body.classList.add('modal-open');
 }
-
 
 function closeVisualWebTester() {
     document.getElementById('visual-web-tester-modal').classList.add('hidden');
     document.body.classList.remove('modal-open');
-    
-    // Clean up iframe content
     const iframe = document.getElementById('vwt-iframe');
     iframe.src = 'about:blank';
     iframe.srcdoc = '';
-    
-    if (iframe.dataset.blobUrl) {
-        URL.revokeObjectURL(iframe.dataset.blobUrl);
-        iframe.dataset.blobUrl = '';
-    }
 }
 
-// --- VWT File and Iframe Logic ---
+// --- VWT File and Iframe Logic (Creator) ---
 
-// *** NEW HELPER FUNCTION ***
-// Extracted from vwt_handleFileUpload to be reusable
 function vwt_updateFilesPreview() {
     const preview = document.getElementById('vwt-files-preview');
     if (!preview) return;
-
     let finalPreview = '';
     if (vwt_files.html) finalPreview += `✓ HTML loaded<br>`;
     if (vwt_files.css && vwt_files.css.length > 0) finalPreview += `✓ ${vwt_files.css.length} CSS file(s) loaded<br>`;
     if (vwt_files.js && vwt_files.js.length > 0) finalPreview += `✓ ${vwt_files.js.length} JS file(s) loaded<br>`;
-
-    if (finalPreview === '') {
-        preview.innerHTML = 'Upload files to begin...';
-    } else {
-        preview.innerHTML = '<strong>Loaded Files:</strong><br>' + finalPreview;
-    }
+    preview.innerHTML = finalPreview === '' ? 'Upload files to begin...' : '<strong>Loaded Files:</strong><br>' + finalPreview;
 }
 
 async function vwt_handleFileUpload(input, type) {
     const files = input.files;
     if (!files || files.length === 0) return;
-
     if (type === 'html') {
-        const file = files[0];
-        vwt_files.html = await vwt_readFileAsText(file);
-    } else if (type === 'css') {
-        vwt_files.css = [];
+        vwt_files.html = await vwt_readFileAsText(files[0]);
+    } else {
+        vwt_files[type] = [];
         for (let file of files) {
             const content = await vwt_readFileAsText(file);
-            vwt_files.css.push({ name: file.name, content });
-        }
-    } else if (type === 'js') {
-        vwt_files.js = [];
-        for (let file of files) {
-            const content = await vwt_readFileAsText(file);
-            vwt_files.js.push({ name: file.name, content });
+            vwt_files[type].push({ name: file.name, content });
         }
     }
-
-    // Update preview display using the new helper
     vwt_updateFilesPreview();
-
-    // Auto-render iframe if HTML is present
-    if (vwt_files.html) {
-        vwt_renderIframe();
-    }
+    if (vwt_files.html) vwt_renderIframe();
 }
 
 function vwt_readFileAsText(file) {
@@ -243,638 +178,493 @@ function vwt_readFileAsText(file) {
     });
 }
 
-function vwt_buildWebsiteHTML() {
-    if (!vwt_files.html) return null;
-    let html = vwt_files.html;
-
-    // Inject CSS
-    if (vwt_files.css.length > 0) {
-        const cssStyles = vwt_files.css.map(file => 
-            `<style>/* ${file.name} */\n${file.content}</style>`
-        ).join('\n');
-        html = html.includes('</head>') ? 
-               html.replace('</head>', cssStyles + '\n</head>') : 
-               cssStyles + '\n' + html;
+function vwt_buildWebsiteHTML(files) {
+    if (!files.html) return null;
+    let html = files.html;
+    if (files.css.length > 0) {
+        const cssStyles = files.css.map(f => `<style>/* ${f.name} */\n${f.content}</style>`).join('\n');
+        html = html.includes('</head>') ? html.replace('</head>', cssStyles + '\n</head>') : cssStyles + '\n' + html;
     }
-
-    // Inject JS
-    if (vwt_files.js.length > 0) {
-        const jsScripts = vwt_files.js.map(file => 
-            `<script>/* ${file.name} */\n${file.content}</script>`
-        ).join('\n');
-        html = html.includes('</body>') ? 
-               html.replace('</body>', jsScripts + '\n</body>') : 
-               html + '\n' + jsScripts;
+    if (files.js.length > 0) {
+        const jsScripts = files.js.map(f => `<script>/* ${f.name} */\n${f.content}</script>`).join('\n');
+        html = html.includes('</body>') ? html.replace('</body>', jsScripts + '\n</body>') : html + '\n' + jsScripts;
     }
     return html;
 }
 
 function vwt_renderIframe() {
-    const htmlContent = vwt_buildWebsiteHTML();
+    const htmlContent = vwt_buildWebsiteHTML(vwt_files);
     if (!htmlContent) {
-        vwt_log("Error: No HTML content to render. Please upload an HTML file.");
+        vwt_log("Error: No HTML content to render.");
         return;
     }
-    
     const iframe = document.getElementById('vwt-iframe');
-    
-    // Clean up old blob URL if it exists
-    if (iframe.dataset.blobUrl) {
-        URL.revokeObjectURL(iframe.dataset.blobUrl);
-        iframe.dataset.blobUrl = '';
-    }
-
-    // *** MODIFICATION: Use srcdoc instead of blob URL ***
-    // This helps avoid the "origin 'null'" cross-origin error
-    // when running the application from a file:// URL.
-    iframe.src = 'about:blank'; // First, clear the src
-    iframe.srcdoc = htmlContent; // Now, set the content via srcdoc
-
+    iframe.src = 'about:blank';
+    iframe.srcdoc = htmlContent;
     vwt_log("Website preview reloaded in sandbox.");
 }
 
-// --- VWT Builder UI Logic ---
-
+// --- VWT Builder UI Logic (Creator) ---
 function vwt_initializeToolbox() {
     const toolbox = document.getElementById('vwt-toolbox');
     if (!toolbox) return;
-
     toolbox.innerHTML = '';
     vwt_availableSteps.forEach(step => {
         const stepEl = document.createElement('div');
         stepEl.className = 'aero-button p-3 rounded cursor-grab no-code-step';
         stepEl.draggable = true;
-        stepEl.innerHTML = `
-            <div class="font-semibold">${step.icon} ${step.name}</div>
-            <div class="text-xs aero-text-muted">${step.description}</div>
-        `;
+        stepEl.innerHTML = `<div class="font-semibold">${step.icon} ${step.name}</div><div class="text-xs aero-text-muted">${step.description}</div>`;
         stepEl.addEventListener('dragstart', (e) => {
-            vwt_dragStartIndex = null; // Indicates dragging a *new* step
+            vwt_dragStartIndex = null;
             e.dataTransfer.setData('text/plain', step.name);
         });
         toolbox.appendChild(stepEl);
     });
 }
-
 function vwt_renderCanvas() {
     const canvas = document.getElementById('vwt-canvas');
-    canvas.innerHTML = '';
-
-    if (vwt_steps.length === 0) {
-        canvas.innerHTML = `<div class="text-center aero-text-muted p-8">Drag steps from the toolbox and drop them here.</div>`;
-    }
-
+    canvas.innerHTML = vwt_steps.length === 0 ? `<div class="text-center aero-text-muted p-8">Drag steps here.</div>` : '';
     vwt_steps.forEach((step, index) => {
         const stepConfig = vwt_availableSteps.find(s => s.name === step.name);
         const stepEl = document.createElement('div');
         stepEl.className = `p-4 mb-2 rounded border-l-4 flex justify-between items-center no-code-step ${vwt_selectedStepIndex === index ? 'aero-button-primary' : 'aero-card'}`;
         stepEl.draggable = true;
         stepEl.dataset.index = index;
-
-        stepEl.innerHTML = `
-            <div>
-                <span class="font-bold">${stepConfig.icon} ${index + 1}. ${step.name}</span>
-            </div>
-            <button class="aero-button-danger text-xs py-1 px-2 rounded" onclick="vwt_deleteStep(${index}, event)">Delete</button>
-        `;
-        
+        stepEl.innerHTML = `<div><span class="font-bold">${stepConfig.icon} ${index + 1}. ${step.name}</span></div><button class="aero-button-danger text-xs py-1 px-2 rounded" onclick="vwt_deleteStep(${index}, event)">Delete</button>`;
         stepEl.addEventListener('click', () => vwt_selectStep(index));
-        
-        // Reordering logic
-        stepEl.addEventListener('dragstart', (e) => {
-            vwt_dragStartIndex = index;
-            e.dataTransfer.effectAllowed = 'move';
-            e.stopPropagation(); // Prevent toolbox dragstart
-        });
-
-        stepEl.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            stepEl.classList.add('drag-over-item');
-        });
-        stepEl.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            stepEl.classList.remove('drag-over-item');
-        });
-
+        stepEl.addEventListener('dragstart', (e) => { vwt_dragStartIndex = index; e.dataTransfer.effectAllowed = 'move'; e.stopPropagation(); });
+        stepEl.addEventListener('dragover', (e) => { e.preventDefault(); stepEl.classList.add('drag-over-item'); });
+        stepEl.addEventListener('dragleave', (e) => { e.preventDefault(); stepEl.classList.remove('drag-over-item'); });
         stepEl.addEventListener('drop', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            stepEl.classList.remove('drag-over-item');
-
-            if (vwt_dragStartIndex === null) {
-                // This is a NEW step being dropped
-                vwt_handleDrop(e, index);
-            } else {
-                // This is REORDERING
-                const dropIndex = index;
-                if (vwt_dragStartIndex === dropIndex) return;
-                const draggedItem = vwt_steps[vwt_dragStartIndex];
-                vwt_steps.splice(vwt_dragStartIndex, 1);
-                vwt_steps.splice(dropIndex, 0, draggedItem);
-                vwt_dragStartIndex = null;
-                vwt_renderCanvas();
-                vwt_selectStep(dropIndex);
+            e.stopPropagation(); e.preventDefault(); stepEl.classList.remove('drag-over-item');
+            if (vwt_dragStartIndex === null) vwt_handleDrop(e, index);
+            else {
+                const dropIndex = index; if (vwt_dragStartIndex === dropIndex) return;
+                const draggedItem = vwt_steps[vwt_dragStartIndex]; vwt_steps.splice(vwt_dragStartIndex, 1); vwt_steps.splice(dropIndex, 0, draggedItem);
+                vwt_dragStartIndex = null; vwt_renderCanvas(); vwt_selectStep(dropIndex);
             }
         });
         canvas.appendChild(stepEl);
     });
 }
-
-function vwt_setupCanvasDropZone() {
-    const canvas = document.getElementById('vwt-canvas');
-    canvas.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        canvas.classList.add('drag-over');
-    });
-    canvas.addEventListener('dragleave', () => canvas.classList.remove('drag-over'));
-    canvas.addEventListener('drop', (e) => vwt_handleDrop(e, null)); // Drop at the end
-}
-// Initialize drop zone listener
+function vwt_setupCanvasDropZone() { const canvas = document.getElementById('vwt-canvas'); canvas.addEventListener('dragover', (e) => { e.preventDefault(); canvas.classList.add('drag-over'); }); canvas.addEventListener('dragleave', () => canvas.classList.remove('drag-over')); canvas.addEventListener('drop', (e) => vwt_handleDrop(e, null)); }
 document.addEventListener('DOMContentLoaded', vwt_setupCanvasDropZone);
-
-
 function vwt_handleDrop(e, dropIndex) {
-    e.preventDefault();
-    document.getElementById('vwt-canvas').classList.remove('drag-over');
-
-    // Only handle drops for NEW steps
-    if (vwt_dragStartIndex !== null) {
-        return;
-    }
-    
-    const stepName = e.dataTransfer.getData('text/plain');
-    const stepConfig = vwt_availableSteps.find(s => s.name === stepName);
-    
+    e.preventDefault(); document.getElementById('vwt-canvas').classList.remove('drag-over'); if (vwt_dragStartIndex !== null) return;
+    const stepName = e.dataTransfer.getData('text/plain'); const stepConfig = vwt_availableSteps.find(s => s.name === stepName);
     if (stepConfig) {
-        const newStep = {
-            id: `step_${Date.now()}`,
-            name: stepConfig.name,
-            params: {}
-        };
+        const newStep = { id: `step_${Date.now()}`, name: stepConfig.name, params: {} };
         stepConfig.params.forEach(p => { newStep.params[p.key] = p.placeholder || ''; });
-        
-        if (dropIndex === null || dropIndex > vwt_steps.length) {
-            vwt_steps.push(newStep); // Add to end
-        } else {
-            vwt_steps.splice(dropIndex, 0, newStep); // Insert at position
-        }
-
-        vwt_renderCanvas();
-        vwt_selectStep(dropIndex === null ? vwt_steps.length - 1 : dropIndex);
+        if (dropIndex === null || dropIndex > vwt_steps.length) vwt_steps.push(newStep); else vwt_steps.splice(dropIndex, 0, newStep);
+        vwt_renderCanvas(); vwt_selectStep(dropIndex === null ? vwt_steps.length - 1 : dropIndex);
     }
 }
-
 function vwt_renderPropertiesPanel() {
     const propertiesPanel = document.getElementById('vwt-properties');
-    if (vwt_selectedStepIndex === null || !vwt_steps[vwt_selectedStepIndex]) {
-        propertiesPanel.innerHTML = `<div class="text-center aero-text-muted p-8">Select a step to configure its properties.</div>`;
-        return;
-    }
-
-    const step = vwt_steps[vwt_selectedStepIndex];
-    const stepConfig = vwt_availableSteps.find(s => s.name === step.name);
-    
+    if (vwt_selectedStepIndex === null || !vwt_steps[vwt_selectedStepIndex]) { propertiesPanel.innerHTML = `<div class="text-center aero-text-muted p-8">Select a step to configure.</div>`; return; }
+    const step = vwt_steps[vwt_selectedStepIndex]; const stepConfig = vwt_availableSteps.find(s => s.name === step.name);
     let formHTML = `<h3 class="text-xl font-bold aero-text-primary mb-4">Properties: ${step.name}</h3>`;
-    
     stepConfig.params.forEach(param => {
-        const value = step.params[param.key] || '';
-        formHTML += `<div class="mb-3">
-            <label class="block text-sm font-medium aero-text-secondary mb-1">${param.label}</label>`;
-
-        // Render a <textarea> for 'textarea' type
-        if (param.type === 'textarea') {
-            formHTML += `<textarea 
-                placeholder="${param.placeholder || ''}"
-                oninput="vwt_updateStepParam(vwt_selectedStepIndex, '${param.key}', this.value)"
-                class="w-full aero-input p-2 rounded h-32">${vwt_escapeHtml(value)}</textarea>`; 
-        } else {
-            formHTML += `<input type="${param.type}" 
-                   placeholder="${param.placeholder || ''}"
-                   value="${vwt_escapeHtml(value)}"
-                   oninput="vwt_updateStepParam(vwt_selectedStepIndex, '${param.key}', this.value)"
-                   class="w-full aero-input p-2 rounded">`;
-        }
+        const value = step.params[param.key] || ''; formHTML += `<div class="mb-3"><label class="block text-sm font-medium aero-text-secondary mb-1">${param.label}</label>`;
+        if (param.type === 'textarea') formHTML += `<textarea placeholder="${param.placeholder || ''}" oninput="vwt_updateStepParam(vwt_selectedStepIndex, '${param.key}', this.value)" class="w-full aero-input p-2 rounded h-32">${vwt_escapeHtml(value)}</textarea>`;
+        else formHTML += `<input type="${param.type}" placeholder="${param.placeholder || ''}" value="${vwt_escapeHtml(value)}" oninput="vwt_updateStepParam(vwt_selectedStepIndex, '${param.key}', this.value)" class="w-full aero-input p-2 rounded">`;
         formHTML += `</div>`;
     });
-
     propertiesPanel.innerHTML = formHTML;
 }
-
-function vwt_selectStep(index) {
-    vwt_selectedStepIndex = index;
-    vwt_renderCanvas();
-    vwt_renderPropertiesPanel();
-}
-
+function vwt_selectStep(index) { vwt_selectedStepIndex = index; vwt_renderCanvas(); vwt_renderPropertiesPanel(); }
 function vwt_deleteStep(index, event) {
-    event.stopPropagation();
-    vwt_steps.splice(index, 1);
-    
-    if (vwt_selectedStepIndex === index) {
-        vwt_selectedStepIndex = null;
-    } else if (vwt_selectedStepIndex > index) {
-        vwt_selectedStepIndex--;
-    }
-    
-    vwt_renderCanvas();
-    vwt_renderPropertiesPanel();
+    event.stopPropagation(); vwt_steps.splice(index, 1);
+    if (vwt_selectedStepIndex === index) vwt_selectedStepIndex = null;
+    else if (vwt_selectedStepIndex > index) vwt_selectedStepIndex--;
+    vwt_renderCanvas(); vwt_renderPropertiesPanel();
 }
+function vwt_updateStepParam(index, key, value) { if (vwt_steps[index]) vwt_steps[index].params[key] = value; }
 
-function vwt_updateStepParam(index, key, value) {
-    if (vwt_steps[index]) {
-        vwt_steps[index].params[key] = value;
-    }
-}
-
-// --- VWT Test Execution & Saving ---
-
-function vwt_log(message) {
-    const logArea = document.getElementById('vwt-logs');
-    logArea.value += `[${new Date().toLocaleTimeString()}] ${message}\n`;
-    logArea.scrollTop = logArea.scrollHeight;
-}
-
+// --- VWT Test Execution & Saving (Creator) ---
+function vwt_log(message) { const logArea = document.getElementById('vwt-logs'); logArea.value += `[${new Date().toLocaleTimeString()}] ${message}\n`; logArea.scrollTop = logArea.scrollHeight; }
 async function vwt_runTest() {
-    vwt_log("--- Starting Live Test Run ---");
-    const iframe = document.getElementById('vwt-iframe');
-
-    // *** MODIFICATION ***
-    // We now check for `srcdoc` content. The `src` will be 'about:blank'
-    // when using `srcdoc`, so we check if `srcdoc` is empty or not.
-    if (!iframe.srcdoc) {
-        vwt_log("Error: No website loaded. Please upload an HTML file and reload preview.");
-        return;
-    }
-    const iframeWin = iframe.contentWindow;
-
-    // Reload the iframe to ensure a clean state
-    vwt_log("Reloading website sandbox for clean test...");
-    vwt_renderIframe();
-
-    // Wait for the iframe to fully reload
-    await new Promise((resolve) => {
-        const listener = () => {
-            iframe.removeEventListener('load', listener);
-            resolve();
-        };
-        iframe.addEventListener('load', listener);
-    });
-    
-    vwt_log("Website reloaded. Starting test steps...");
-
+    vwt_log("--- Starting Live Test Run ---"); const iframe = document.getElementById('vwt-iframe');
+    if (!iframe.srcdoc) { vwt_log("Error: No website loaded."); return; }
+    vwt_log("Reloading sandbox..."); vwt_renderIframe();
+    await new Promise(resolve => { iframe.onload = resolve; }); vwt_log("Starting test steps...");
     for (let i = 0; i < vwt_steps.length; i++) {
-        const step = vwt_steps[i];
-        const stepConfig = vwt_availableSteps.find(s => s.name === step.name);
-        
-        vwt_log(`[Step ${i + 1}/${vwt_steps.length}] Running: ${step.name}`);
-        
+        const step = vwt_steps[i]; const stepConfig = vwt_availableSteps.find(s => s.name === step.name);
+        vwt_log(`[Step ${i + 1}] Running: ${step.name}`);
         try {
-            // Highlight the step being run
-            vwt_selectStep(i); 
-            
-            // A small delay to make the execution visible
-            await new Promise(resolve => setTimeout(resolve, 300));
-
-            // Use 'await' for async steps like 'Wait For Element'
-            await stepConfig.execute(step.params, iframeWin, vwt_log);
-
-        } catch (error) {
-            vwt_log(`--- ERROR at Step ${i + 1} ---`);
-            vwt_log(error.message);
-            vwt_log("--- Test Run Aborted ---");
-            return; // Stop execution on failure
-        }
+            vwt_selectStep(i); await new Promise(r => setTimeout(r, 300));
+            await stepConfig.execute(step.params, iframe.contentWindow, vwt_log);
+        } catch (error) { vwt_log(`--- ERROR at Step ${i + 1} ---\n${error.message}\n--- Test Aborted ---`); return; }
     }
-    
     vwt_log("--- Test Run Finished Successfully ---");
 }
-
 function vwt_generateRobotCode() {
-    let code = `*** Settings ***\n`;
-    code += `Library    BrowserLibrary\n\n`; // Use the built-in browser library
-    code += `*** Test Cases ***\n`;
-    code += `Visually Generated Web Test\n`;
-
-    vwt_steps.forEach(step => {
-        const stepConfig = vwt_availableSteps.find(s => s.name === step.name);
-        if (stepConfig) {
-            code += stepConfig.robot(step.params) + '\n';
-        }
-    });
+    let code = `*** Settings ***\nLibrary    BrowserLibrary\n\n*** Test Cases ***\nVisually Generated Web Test\n`;
+    vwt_steps.forEach(step => { const stepConfig = vwt_availableSteps.find(s => s.name === step.name); if (stepConfig) code += stepConfig.robot(step.params) + '\n'; });
     return code;
 }
-
-// *** MODIFIED ***
-// This function now handles both CREATE and UPDATE
 async function vwt_saveSuite() {
-    if (vwt_steps.length === 0) {
-        showMessage('Cannot save: No test steps added.', 'error'); // Relies on showMessage from script.js
-        return;
-    }
-    if (!vwt_files.html) {
-        showMessage('Cannot save: No HTML file uploaded.', 'error');
-        return;
-    }
-
+    if (vwt_steps.length === 0 || !vwt_files.html) { showMessage('Cannot save: Add steps and upload an HTML file.', 'error'); return; }
     let suiteName, suiteDescription, suiteViewId;
-
-    // Get name and description
     if (vwt_editingSuiteId) {
-        // We are EDITING, so we get existing data
-        const existingSuite = testSuites.find(s => s.id === vwt_editingSuiteId); // testSuites from script.js
-        suiteName = prompt("Confirm test suite name:", existingSuite.name);
-        if (!suiteName) return; // User cancelled
-        suiteDescription = prompt("Confirm description:", existingSuite.description);
-        suiteViewId = existingSuite.view_id; // Preserve existing view_id
+        const existingSuite = testSuites.find(s => s.id === vwt_editingSuiteId);
+        suiteName = prompt("Confirm test suite name:", existingSuite.name); if (!suiteName) return;
+        suiteDescription = prompt("Confirm description:", existingSuite.description); suiteViewId = existingSuite.view_id;
     } else {
-        // We are CREATING, so we ask for new data
-        suiteName = prompt("Enter a name for this new test suite:", "New Visual Web Test");
-        if (!suiteName) return; // User cancelled
-        suiteDescription = prompt("Enter a description (optional):", "Generated by Visual Web Tester");
-        suiteViewId = currentViewId || null; // Rely on currentViewId from script.js
+        suiteName = prompt("Enter a name for this new test suite:", "New Visual Web Test"); if (!suiteName) return;
+        suiteDescription = prompt("Enter a description (optional):", "Generated by Visual Web Tester"); suiteViewId = currentViewId || null;
     }
-
-    vwt_log("Generating Robot Framework code...");
-    const generatedCode = vwt_generateRobotCode();
-    
-    // This is the complete suite data object
-    const suiteData = {
-        name: suiteName,
-        description: suiteDescription,
-        language: 'website',
-        code: generatedCode,
-        vwt_steps_json: JSON.stringify(vwt_steps), // *** Store the visual steps as JSON! ***
-        website_method: 'upload',
-        website_html_content: vwt_files.html,
-        website_css_contents: vwt_files.css, // Stored as {name, content}
-        website_js_contents: vwt_files.js,   // Stored as {name, content}
-        view_id: suiteViewId, 
-        parameters: [], // VWT doesn't use these, so default to empty
-        input_files: [], // VWT doesn't use these, so default to empty
-        log_config: { enabled: true, format: 'html', save_trigger: 'always' } // Sensible default
-    };
-
+    const suiteData = { name: suiteName, description: suiteDescription, language: 'website', code: vwt_generateRobotCode(), vwt_steps_json: JSON.stringify(vwt_steps), website_method: 'upload', website_html_content: vwt_files.html, website_css_contents: vwt_files.css, website_js_contents: vwt_files.js, view_id: suiteViewId, parameters: [], input_files: [], log_config: { enabled: true, format: 'html', save_trigger: 'always' } };
     try {
-        // This is the key integration: it calls functions from script.js
-        if (typeof currentStorage === 'undefined' || !currentStorage.saveSuite || !currentStorage.updateSuite) {
-             vwt_log("Error: currentStorage function not found.");
-             showMessage("Error: Storage system not found. Cannot save.", 'error');
-             return;
-        }
-        
-        if (vwt_editingSuiteId) {
-            // We are UPDATING an existing suite
-            vwt_log("Updating test suite...");
-            // We need to merge with existing data in case VWT doesn't set all fields
-            const existingSuite = testSuites.find(s => s.id === vwt_editingSuiteId);
-            const updatedSuite = { ...existingSuite, ...suiteData };
-            
-            await currentStorage.updateSuite(vwt_editingSuiteId, updatedSuite);
-            showMessage("Test suite updated successfully!", 'success');
-            vwt_log("Test suite updated! You can now close this window.");
-        } else {
-            // We are CREATING a new suite
-            vwt_log("Saving new test suite...");
-            await currentStorage.saveSuite(suiteData);
-            showMessage("Test suite saved successfully!", 'success');
-            vwt_log("Test suite saved! You can now close this window.");
-        }
-        
-        closeVisualWebTester(); // Close modal on success
-
-    } catch (error) {
-        vwt_log(`Error saving suite: ${error.message}`);
-        showMessage(`Error saving suite: ${error.message}`, 'error');
-    }
+        if (vwt_editingSuiteId) { const existingSuite = testSuites.find(s => s.id === vwt_editingSuiteId); await currentStorage.updateSuite(vwt_editingSuiteId, { ...existingSuite, ...suiteData }); showMessage("Test suite updated!", 'success'); }
+        else { await currentStorage.saveSuite(suiteData); showMessage("Test suite saved!", 'success'); }
+        closeVisualWebTester();
+    } catch (error) { showMessage(`Error saving suite: ${error.message}`, 'error'); }
 }
-
-// --- VWT Utilities ---
-
-function vwt_escapeHtml(text) {
-    if (text === null || text === undefined) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+function vwt_escapeHtml(text) { if (text == null) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
 
 // ============================================
-// VWT LIVE RUNNER (FOR READ-ONLY EXECUTION)
+// VWT LIVE RUNNER (REFACTORED FOR CONCURRENT EXECUTION)
 // ============================================
 
-let vwt_runnerSuite = null;
+// --- Runner State Management ---
+let activeTestRunners = new Map();
+let vwt_activeRunnerIdInModal = null; // Tracks which runner is currently viewed in the modal
 
 /**
- * Opens the simplified Live Runner modal for an existing visual test suite.
+ * Main entry point to start a new test run or maximize an existing one.
  * @param {object} suite - The test suite object to run.
  */
 function vwt_openLiveRunner(suite) {
     if (!suite || suite.language !== 'website' || suite.website_method !== 'upload') {
-        vwt_runnerLog("Error: Invalid suite for Live Runner.");
+        console.error("Invalid suite for Live Runner.");
         return;
     }
-    
-    vwt_runnerSuite = suite;
-    
-    // 1. Load visual steps
-    let steps = [];
-    if (suite.vwt_steps_json) {
-        try {
-            steps = JSON.parse(suite.vwt_steps_json);
-        } catch (e) {
-            vwt_runnerLog("Error: Failed to parse visual steps for runner.");
+
+    // Check if a runner for this suite already exists
+    for (const runner of activeTestRunners.values()) {
+        if (runner.suite.id === suite.id) {
+            vwt_maximizeLiveRunner(runner.id);
+            return;
         }
     }
+
+    // Create a new runner instance
+    const runnerId = `runner_${Date.now()}`;
+    const logContainer = [];
     
-    // 2. Set up the Live Runner Modal UI
+    // Create an isolated, hidden iframe for this runner
+    const iframe = document.createElement('iframe');
+    iframe.className = 'w-full h-full';
+    iframe.style.border = 'none';
+    iframe.title = `Sandboxed runner for ${suite.name}`;
+    
+    const hiddenIframesContainer = document.getElementById('hidden-iframes-container');
+    hiddenIframesContainer.appendChild(iframe);
+
+    const runner = {
+        id: runnerId,
+        suite: suite,
+        steps: JSON.parse(suite.vwt_steps_json || '[]'),
+        log: logContainer,
+        iframe: iframe,
+        status: 'RUNNING', // INITIALIZING, RUNNING, SUCCESS, FAILURE
+        isMinimized: true,
+        isExecuting: false
+    };
+
+    activeTestRunners.set(runnerId, runner);
+    
+    vwt_addTestToMinimizeBar(runnerId);
+    vwt_maximizeLiveRunner(runnerId); // Show the modal immediately
+    vwt_runLiveTestFromRunner(runnerId); // Start the test
+}
+
+/**
+ * Maximizes a specific runner's view in the main modal.
+ * @param {string} runnerId - The ID of the runner to show.
+ */
+function vwt_maximizeLiveRunner(runnerId) {
+    const runner = activeTestRunners.get(runnerId);
+    if (!runner) return;
+
+    vwt_activeRunnerIdInModal = runnerId;
+    runner.isMinimized = false;
+
+    // Get modal elements
     const modal = document.getElementById('vwt-live-runner-modal');
+    const title = document.getElementById('vwt-runner-modal-title');
     const logArea = document.getElementById('vwt-runner-logs');
-    const iframe = document.getElementById('vwt-runner-iframe');
-    const canvas = document.getElementById('vwt-runner-canvas');
+    const iframeContainer = document.getElementById('vwt-runner-iframe-container');
+    const rerunButton = document.getElementById('vwt-runner-rerun-btn');
     
-    if (!modal || !logArea || !iframe || !canvas) {
-        console.error("VWT Live Runner modal elements not found.");
-        return;
-    }
-
-    // Reset UI
-    logArea.value = `Loaded suite "${suite.name}" for live execution.\n`;
-    iframe.src = 'about:blank'; // Clear old content
-
-    // 3. Render Read-Only Steps
-    vwt_renderRunnerCanvas(steps);
+    // Populate modal with this runner's data
+    title.textContent = `▶ ${runner.suite.name}`;
+    vwt_renderRunnerCanvas(runner.steps);
+    logArea.value = runner.log.join('\n');
+    logArea.scrollTop = logArea.scrollHeight;
     
-    // 4. Build and render the website preview
-    vwt_renderRunnerIframe(suite);
+    // Move the runner's iframe into the visible container
+    iframeContainer.innerHTML = '';
+    iframeContainer.appendChild(runner.iframe);
+    
+    // Update button state
+    rerunButton.disabled = runner.isExecuting;
+    rerunButton.innerHTML = runner.isExecuting ? `<div class="spinner mr-2"></div> Running...` : '▶ Re-run Test';
 
-    // 5. Open modal
     modal.classList.remove('hidden');
     document.body.classList.add('modal-open');
 }
 
 /**
- * Renders the test steps in the read-only runner canvas.
- * @param {Array} steps - The list of visual steps.
+ * Minimizes the currently visible runner.
  */
-function vwt_renderRunnerCanvas(steps) {
-    const canvas = document.getElementById('vwt-runner-canvas');
-    canvas.innerHTML = '';
-    
-    if (steps.length === 0) {
-        canvas.innerHTML = `<div class="text-center aero-text-muted p-8">No steps defined for this test.</div>`;
+function vwt_minimizeLiveRunner() {
+    const runnerId = vwt_activeRunnerIdInModal;
+    if (!runnerId) {
+        vwt_closeLiveRunner(false); // Close modal if no runner is active
         return;
     }
 
+    const runner = activeTestRunners.get(runnerId);
+    if (!runner) return;
+    
+    runner.isMinimized = true;
+
+    // Move the iframe back to the hidden container to keep it alive
+    const hiddenIframesContainer = document.getElementById('hidden-iframes-container');
+    hiddenIframesContainer.appendChild(runner.iframe);
+
+    const modal = document.getElementById('vwt-live-runner-modal');
+    modal.classList.add('hidden');
+    document.body.classList.remove('modal-open');
+    
+    vwt_activeRunnerIdInModal = null;
+}
+
+/**
+ * Closes a runner, either from the modal view or the minimize bar.
+ * @param {boolean|string} fromModalOrRunnerId - If true, closes the active modal. Otherwise, closes the runner with the given ID.
+ */
+function vwt_closeLiveRunner(fromModalOrRunnerId) {
+    const runnerId = fromModalOrRunnerId === true ? vwt_activeRunnerIdInModal : fromModalOrRunnerId;
+    if (!runnerId) {
+        // Just hide the modal if no specific runner is targeted
+        const modal = document.getElementById('vwt-live-runner-modal');
+        if (modal) modal.classList.add('hidden');
+        document.body.classList.remove('modal-open');
+        return;
+    }
+
+    const runner = activeTestRunners.get(runnerId);
+    if (!runner) return;
+
+    // Clean up DOM
+    runner.iframe.remove(); 
+    
+    // Clean up state
+    activeTestRunners.delete(runnerId);
+    vwt_removeTestFromMinimizeBar(runnerId);
+
+    if (vwt_activeRunnerIdInModal === runnerId) {
+        const modal = document.getElementById('vwt-live-runner-modal');
+        modal.classList.add('hidden');
+        document.body.classList.remove('modal-open');
+        vwt_activeRunnerIdInModal = null;
+    }
+}
+
+/**
+ * The core test execution logic for a given runner.
+ * @param {string} runnerId - The ID of the runner to execute.
+ */
+async function vwt_runLiveTestFromRunner(runnerId) {
+    if (!runnerId) runnerId = vwt_activeRunnerIdInModal;
+    const runner = activeTestRunners.get(runnerId);
+    if (!runner || runner.isExecuting) return;
+
+    runner.isExecuting = true;
+    runner.status = 'RUNNING';
+    vwt_updateMinimizeBarItem(runnerId);
+    
+    // A log function specific to this runner instance
+    const runnerLog = (message) => {
+        const timestampedMessage = `[${new Date().toLocaleTimeString()}] ${message}`;
+        runner.log.push(timestampedMessage);
+        // If this runner is currently being viewed, update the textarea
+        if (vwt_activeRunnerIdInModal === runnerId) {
+            const logArea = document.getElementById('vwt-runner-logs');
+            logArea.value += timestampedMessage + '\n';
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+    };
+
+    // Update UI if this runner is active in the modal
+    if (vwt_activeRunnerIdInModal === runnerId) {
+        const rerunButton = document.getElementById('vwt-runner-rerun-btn');
+        rerunButton.disabled = true;
+        rerunButton.innerHTML = `<div class="spinner mr-2"></div> Running...`;
+        document.getElementById('vwt-runner-logs').value = ''; // Clear logs on re-run
+    }
+    runner.log.length = 0; // Clear internal log array
+
+    runnerLog("--- Starting Live Test Run ---");
+    
+    try {
+        const htmlContent = vwt_buildWebsiteHTML({
+            html: runner.suite.website_html_content,
+            css: runner.suite.website_css_contents || [],
+            js: runner.suite.website_js_contents || []
+        });
+
+        if (!htmlContent) throw new Error("Could not build website HTML.");
+        
+        runner.iframe.srcdoc = htmlContent;
+        runnerLog("Website loaded into isolated sandbox.");
+
+        await new Promise((resolve, reject) => {
+            const timer = setTimeout(() => reject(new Error("Iframe load timed out")), 5000);
+            runner.iframe.onload = () => { clearTimeout(timer); resolve(); };
+        });
+
+        runnerLog("Sandbox ready. Starting test steps...");
+        const iframeWin = runner.iframe.contentWindow;
+
+        for (let i = 0; i < runner.steps.length; i++) {
+            const step = runner.steps[i];
+            const stepConfig = vwt_availableSteps.find(s => s.name === step.name);
+            runnerLog(`[Step ${i + 1}/${runner.steps.length}] Running: ${step.name}`);
+            
+            // Highlight step if visible
+            if (vwt_activeRunnerIdInModal === runnerId) {
+                const canvas = document.getElementById('vwt-runner-canvas');
+                canvas.querySelectorAll('.aero-card').forEach(el => 
+                    el.classList.toggle('border-blue-700', el.dataset.index == i)
+                );
+                await new Promise(r => setTimeout(r, 300));
+            }
+            
+            await stepConfig.execute(step.params, iframeWin, runnerLog);
+        }
+        
+        runnerLog("--- Test Run Finished Successfully ---");
+        runner.status = 'SUCCESS';
+
+    } catch (error) {
+        runnerLog(`--- ERROR ---`);
+        runnerLog(error.message);
+        runnerLog("--- Test Run Aborted ---");
+        runner.status = 'FAILURE';
+    } finally {
+        runner.isExecuting = false;
+        vwt_updateMinimizeBarItem(runnerId);
+        // Reset UI if visible
+        if (vwt_activeRunnerIdInModal === runnerId) {
+            const rerunButton = document.getElementById('vwt-runner-rerun-btn');
+            rerunButton.disabled = false;
+            rerunButton.textContent = '▶ Re-run Test';
+            const canvas = document.getElementById('vwt-runner-canvas');
+            canvas.querySelectorAll('.aero-card').forEach(el => el.classList.remove('border-blue-700'));
+        }
+    }
+}
+
+// --- Runner UI Helpers ---
+
+function vwt_renderRunnerCanvas(steps) {
+    const canvas = document.getElementById('vwt-runner-canvas');
+    canvas.innerHTML = steps.length === 0 ? `<div class="text-center aero-text-muted p-8">No steps defined.</div>` : '';
     steps.forEach((step, index) => {
         const stepConfig = vwt_availableSteps.find(s => s.name === step.name);
         if (!stepConfig) return;
-
         const stepEl = document.createElement('div');
-        // Use a non-interactive style
         stepEl.className = `aero-card p-3 rounded border-l-4 border-blue-400 opacity-80`; 
         stepEl.dataset.index = index;
-
-        stepEl.innerHTML = `
-            <div>
-                <span class="font-bold">${stepConfig.icon} ${index + 1}. ${step.name}</span>
-            </div>
+        stepEl.innerHTML = `<div><span class="font-bold">${stepConfig.icon} ${index + 1}. ${step.name}</span></div>
             <div class="text-xs aero-text-muted mt-1">
-                ${Object.entries(step.params).map(([key, value]) => `
-                    <strong>${key}:</strong> ${vwt_escapeHtml(String(value)).substring(0, 30)}${String(value).length > 30 ? '...' : ''}
-                `).join(' | ')}
-            </div>
-        `;
-        
+            ${Object.entries(step.params).map(([key, value]) => `<strong>${key}:</strong> ${vwt_escapeHtml(String(value)).substring(0, 30)}`).join(' | ')}
+            </div>`;
         canvas.appendChild(stepEl);
     });
 }
 
-/**
- * Builds and renders the website preview in the runner's iframe.
- * @param {object} suite - The test suite containing website file content.
- */
-function vwt_renderRunnerIframe(suite) {
-    const tempFiles = {
-        html: suite.website_html_content,
-        css: suite.website_css_contents || [],
-        js: suite.website_js_contents || []
+// ============================================
+// MINIMIZE BAR FUNCTIONS (REFACTORED FOR MULTIPLE ITEMS)
+// ============================================
+
+function vwt_addTestToMinimizeBar(runnerId) {
+    const runner = activeTestRunners.get(runnerId);
+    if (!runner) return;
+    
+    const container = document.getElementById('minimize-bar-items-container');
+    const bar = document.getElementById('minimize-bar');
+
+    const item = document.createElement('div');
+    item.className = 'minimized-test-item';
+    item.id = `minimized-test-${runnerId}`;
+    
+    // Main body of the item maximizes the runner
+    item.onclick = (e) => {
+        if (e.target.closest('.close-btn')) return;
+        vwt_maximizeLiveRunner(runnerId);
     };
     
-    // Temporarily swap global vwt_files to use vwt_buildWebsiteHTML helper
-    const originalVwtFiles = vwt_files;
-    vwt_files = tempFiles;
-    const htmlContent = vwt_buildWebsiteHTML();
-    vwt_files = originalVwtFiles; // Restore
+    item.innerHTML = `
+        <div class="spinner mr-2"></div>
+        <span class="font-semibold">${vwt_escapeHtml(runner.suite.name)}</span>
+        <button class="close-btn" title="Close Test" onclick="event.stopPropagation(); vwt_closeLiveRunner('${runnerId}')">
+            &times;
+        </button>
+    `;
 
-    if (!htmlContent) {
-        vwt_runnerLog("Error: No HTML content to render in runner.");
-        return;
-    }
-    
-    const iframe = document.getElementById('vwt-runner-iframe');
-    iframe.src = 'about:blank'; // First, clear the src
-    iframe.srcdoc = htmlContent; // Set the content via srcdoc
-
-    vwt_runnerLog("Website preview reloaded in runner sandbox.");
+    container.appendChild(item);
+    bar.classList.remove('hidden');
+    document.body.style.paddingBottom = '4rem';
 }
 
-/**
- * Executes the live test run in the runner modal.
- */
-async function vwt_runLiveTestFromRunner() {
-    if (!vwt_runnerSuite) {
-        vwt_runnerLog("Error: No test suite loaded.");
-        return;
-    }
+function vwt_removeTestFromMinimizeBar(runnerId) {
+    const item = document.getElementById(`minimized-test-${runnerId}`);
+    if (item) item.remove();
 
-    vwt_runnerLog("--- Starting Live Test Run ---");
-    const iframe = document.getElementById('vwt-runner-iframe');
-    const logArea = document.getElementById('vwt-runner-logs');
-    const canvas = document.getElementById('vwt-runner-canvas');
-
-    if (!iframe.srcdoc) {
-        vwt_runnerLog("Error: No website loaded. Please reload preview.");
-        return;
-    }
-    const iframeWin = iframe.contentWindow;
-    const steps = JSON.parse(vwt_runnerSuite.vwt_steps_json || '[]');
-
-    // Clear and reload for a clean state
-    logArea.value = `Loaded suite "${vwt_runnerSuite.name}" for live execution.\n`;
-    vwt_renderRunnerIframe(vwt_runnerSuite); 
-
-    // Wait for the iframe to fully reload
-    await new Promise((resolve) => {
-        const listener = () => {
-            iframe.removeEventListener('load', listener);
-            resolve();
-        };
-        iframe.addEventListener('load', listener);
-    });
-    
-    vwt_runnerLog("Website reloaded. Starting test steps...");
-
-    for (let i = 0; i < steps.length; i++) {
-        const step = steps[i];
-        const stepConfig = vwt_availableSteps.find(s => s.name === step.name);
-        
-        vwt_runnerLog(`[Step ${i + 1}/${steps.length}] Running: ${step.name}`);
-        
-        try {
-            // Highlight the step being run in the read-only canvas
-            canvas.querySelectorAll('.aero-card').forEach(el => 
-                el.classList.toggle('border-blue-700', el.dataset.index == i)
-            );
-            
-            // A small delay to make the execution visible
-            await new Promise(resolve => setTimeout(resolve, 300));
-
-            // Use 'await' for async steps like 'Wait For Element'
-            // Pass the custom runner log function
-            await stepConfig.execute(step.params, iframeWin, vwt_runnerLog);
-
-        } catch (error) {
-            vwt_runnerLog(`--- ERROR at Step ${i + 1} ---`);
-            vwt_runnerLog(error.message);
-            vwt_runnerLog("--- Test Run Aborted ---");
-            // Clear step highlight
-            canvas.querySelectorAll('.aero-card').forEach(el => el.classList.remove('border-blue-700'));
-            return; // Stop execution on failure
-        }
-    }
-    
-    vwt_runnerLog("--- Test Run Finished Successfully ---");
-    // Clear final step highlight
-    canvas.querySelectorAll('.aero-card').forEach(el => el.classList.remove('border-blue-700'));
-}
-
-/**
- * Custom log function for the Live Runner modal.
- * @param {string} message - The message to log.
- */
-function vwt_runnerLog(message) {
-    const logArea = document.getElementById('vwt-runner-logs');
-    if (logArea) {
-        logArea.value += `[${new Date().toLocaleTimeString()}] ${message}\n`;
-        logArea.scrollTop = logArea.scrollHeight;
+    const container = document.getElementById('minimize-bar-items-container');
+    if (container.children.length === 0) {
+        document.getElementById('minimize-bar').classList.add('hidden');
+        document.body.style.paddingBottom = '0';
     }
 }
 
-/**
- * Closes the Live Runner modal.
- */
-function vwt_closeLiveRunner() {
-    const modal = document.getElementById('vwt-live-runner-modal');
-    if (modal) modal.classList.add('hidden');
-    document.body.classList.remove('modal-open');
-    vwt_runnerSuite = null; // Clear state
-    
-    // Clean up iframe content
-    const iframe = document.getElementById('vwt-runner-iframe');
-    if (iframe) {
-        iframe.src = 'about:blank';
-        iframe.srcdoc = '';
+function vwt_updateMinimizeBarItem(runnerId) {
+    const runner = activeTestRunners.get(runnerId);
+    if (!runner) return;
+
+    const item = document.getElementById(`minimized-test-${runnerId}`);
+    if (!item) return;
+
+    // Remove existing status classes
+    item.classList.remove('status-success', 'status-failure');
+    const spinner = item.querySelector('.spinner');
+
+    if (runner.status === 'SUCCESS') {
+        item.classList.add('status-success');
+        if(spinner) spinner.style.display = 'none';
+    } else if (runner.status === 'FAILURE') {
+        item.classList.add('status-failure');
+        if(spinner) spinner.style.display = 'none';
+    } else { // RUNNING or INITIALIZING
+        if(spinner) spinner.style.display = 'inline-block';
     }
 }
 
-// Make the new function globally accessible from script.js
+function vwt_initializeMinimizeBarScroll() {
+    const wrapper = document.getElementById('minimize-bar-items-wrapper');
+    const leftBtn = document.getElementById('minimize-bar-toggle-left');
+    const rightBtn = document.getElementById('minimize-bar-toggle-right');
+    if (!wrapper || !leftBtn || !rightBtn) return;
+    const scrollAmount = 200;
+    leftBtn.addEventListener('click', () => wrapper.scrollBy({ left: -scrollAmount, behavior: 'smooth' }));
+    rightBtn.addEventListener('click', () => wrapper.scrollBy({ left: scrollAmount, behavior: 'smooth' }));
+}
+document.addEventListener('DOMContentLoaded', vwt_initializeMinimizeBarScroll);
+
+// Make the entry point function globally accessible
 window.vwt_openLiveRunner = vwt_openLiveRunner;
