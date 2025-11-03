@@ -7,6 +7,8 @@ body {
     min-height: 100vh;
     background: linear-gradient(180deg, #C5E7FF 0%, #E8F4FF 50%, #F0F8FF 100%);
     color: #003366;
+    /* transition for padding-bottom */
+    transition: padding-bottom 0.3s ease-out;
 }
 
 .code-area {
@@ -68,6 +70,12 @@ body {
 .aero-button:active {
     background: linear-gradient(180deg, #BBDEFB 0%, #90CAF9 100%);
     box-shadow: 0 1px 2px rgba(0, 102, 204, 0.3) inset;
+}
+
+.aero-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: linear-gradient(180deg, #E0E0E0 0%, #BDBDBD 100%);
 }
 
 /* Primary Action Buttons */
@@ -268,6 +276,7 @@ body {
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
     width: 14px;
+    height: 14px;
 }
 
 ::-webkit-scrollbar-track {
@@ -380,4 +389,78 @@ body {
 .drag-over-item {
     border-top: 2px solid #1E88E5;
     box-shadow: 0 4px 12px rgba(0, 102, 204, 0.2);
+}
+
+/* ============================================
+   NEW MINIMIZE BAR STYLES
+   ============================================ */
+
+#minimize-bar {
+    box-shadow: 0 -4px 16px rgba(0, 102, 204, 0.15);
+    border-top: 1px solid #90CAF9;
+}
+
+#minimize-bar-items-wrapper {
+    white-space: nowrap;
+}
+
+/* Hide scrollbar by default, but allow scrolling */
+#minimize-bar-items-wrapper::-webkit-scrollbar {
+    display: none;
+}
+
+.minimized-test-item {
+    display: inline-flex;
+    align-items: center;
+    background: linear-gradient(180deg, #64B5F6 0%, #42A5F5 50%, #2196F3 100%);
+    border: 1px solid #1E88E5;
+    color: #FFFFFF;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+    height: 3rem; /* 48px */
+    padding-left: 1rem;
+    padding-right: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.minimized-test-item:hover {
+    background: linear-gradient(180deg, #6EC1FF 0%, #4DB0FF 50%, #2BA3FF 100%);
+    box-shadow: 0 3px 8px rgba(33, 150, 243, 0.4);
+}
+
+.minimized-test-item .close-btn {
+    background: linear-gradient(180deg, #E57373 0%, #EF5350 50%, #F44336 100%);
+    border: 1px solid #E53935;
+    color: #FFFFFF;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+    margin-left: 0.75rem;
+    width: 1.5rem; /* 24px */
+    height: 1.5rem; /* 24px */
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    line-height: 1;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+.minimized-test-item .close-btn:hover {
+     background: linear-gradient(180deg, #EE8484 0%, #F66361 50%, #F55549 100%);
+}
+
+/* ny style för multitests */
+
+.minimized-test-item.status-success {
+    background: linear-gradient(180deg, #81C784 0%, #66BB6A 50%, #4CAF50 100%);
+    border-color: #43A047;
+}
+
+.minimized-test-item.status-failure {
+    background: linear-gradient(180deg, #E57373 0%, #EF5350 50%, #F44336 100%);
+    border-color: #E53935;
 }
