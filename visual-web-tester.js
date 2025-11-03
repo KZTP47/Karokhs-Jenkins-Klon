@@ -329,11 +329,10 @@ function vwt_escapeHtml(text) { if (text == null) return ''; const div = documen
 
 // --- Runner State Management ---
 let activeTestRunners = new Map();
-let vwt_activeRunnerIdInModal = null; // Tracks which runner is currently viewed in the modal
+let vwt_activeRunnerIdInModal = null; 
 
 /**
  * Main entry point to start a new test run or maximize an existing one.
- * @param {object} suite - The test suite object to run.
  */
 function vwt_openLiveRunner(suite) {
     if (!suite || suite.language !== 'website' || suite.website_method !== 'upload') {
@@ -341,7 +340,6 @@ function vwt_openLiveRunner(suite) {
         return;
     }
 
-    // Check if a runner for this suite already exists
     for (const runner of activeTestRunners.values()) {
         if (runner.suite.id === suite.id) {
             vwt_maximizeLiveRunner(runner.id);
@@ -349,18 +347,18 @@ function vwt_openLiveRunner(suite) {
         }
     }
 
-    // Create a new runner instance
     const runnerId = `runner_${Date.now()}`;
     const logContainer = [];
     
-    // Create an isolated, hidden iframe for this runner
+    // MODIFIED: The iframe is now created and appended to the *visible* modal's container from the start.
     const iframe = document.createElement('iframe');
     iframe.className = 'w-full h-full';
     iframe.style.border = 'none';
+    iframe.style.display = 'none'; // It starts hidden.
     iframe.title = `Sandboxed runner for ${suite.name}`;
     
-    const hiddenIframesContainer = document.getElementById('hidden-iframes-container');
-    hiddenIframesContainer.appendChild(iframe);
+    const iframeContainer = document.getElementById('vwt-runner-iframe-container');
+    iframeContainer.appendChild(iframe);
 
     const runner = {
         id: runnerId,
@@ -368,7 +366,7 @@ function vwt_openLiveRunner(suite) {
         steps: JSON.parse(suite.vwt_steps_json || '[]'),
         log: logContainer,
         iframe: iframe,
-        status: 'RUNNING', // INITIALIZING, RUNNING, SUCCESS, FAILURE
+        status: 'RUNNING', 
         isMinimized: true,
         isExecuting: false
     };
@@ -376,39 +374,41 @@ function vwt_openLiveRunner(suite) {
     activeTestRunners.set(runnerId, runner);
     
     vwt_addTestToMinimizeBar(runnerId);
-    vwt_maximizeLiveRunner(runnerId); // Show the modal immediately
-    vwt_runLiveTestFromRunner(runnerId); // Start the test
+    vwt_maximizeLiveRunner(runnerId);
+    vwt_runLiveTestFromRunner(runnerId);
 }
 
 /**
  * Maximizes a specific runner's view in the main modal.
- * @param {string} runnerId - The ID of the runner to show.
  */
 function vwt_maximizeLiveRunner(runnerId) {
     const runner = activeTestRunners.get(runnerId);
     if (!runner) return;
+    
+    // MODIFIED: Instead of complex positioning, we just toggle visibility.
+    // First, hide all other runner iframes.
+    for (const otherRunner of activeTestRunners.values()) {
+        if (otherRunner.id !== runnerId) {
+            otherRunner.iframe.style.display = 'none';
+        }
+    }
+
+    // Then, show the one we want.
+    runner.iframe.style.display = 'block';
 
     vwt_activeRunnerIdInModal = runnerId;
     runner.isMinimized = false;
 
-    // Get modal elements
     const modal = document.getElementById('vwt-live-runner-modal');
     const title = document.getElementById('vwt-runner-modal-title');
     const logArea = document.getElementById('vwt-runner-logs');
-    const iframeContainer = document.getElementById('vwt-runner-iframe-container');
     const rerunButton = document.getElementById('vwt-runner-rerun-btn');
     
-    // Populate modal with this runner's data
     title.textContent = `▶ ${runner.suite.name}`;
     vwt_renderRunnerCanvas(runner.steps);
     logArea.value = runner.log.join('\n');
     logArea.scrollTop = logArea.scrollHeight;
     
-    // Move the runner's iframe into the visible container
-    iframeContainer.innerHTML = '';
-    iframeContainer.appendChild(runner.iframe);
-    
-    // Update button state
     rerunButton.disabled = runner.isExecuting;
     rerunButton.innerHTML = runner.isExecuting ? `<div class="spinner mr-2"></div> Running...` : '▶ Re-run Test';
 
@@ -422,7 +422,7 @@ function vwt_maximizeLiveRunner(runnerId) {
 function vwt_minimizeLiveRunner() {
     const runnerId = vwt_activeRunnerIdInModal;
     if (!runnerId) {
-        vwt_closeLiveRunner(false); // Close modal if no runner is active
+        vwt_closeLiveRunner(false); 
         return;
     }
 
@@ -431,10 +431,9 @@ function vwt_minimizeLiveRunner() {
     
     runner.isMinimized = true;
 
-    // Move the iframe back to the hidden container to keep it alive
-    const hiddenIframesContainer = document.getElementById('hidden-iframes-container');
-    hiddenIframesContainer.appendChild(runner.iframe);
-
+    // MODIFIED: No need to move the iframe. Just hide the modal.
+    // The iframe stays in the modal container but becomes invisible with it.
+    
     const modal = document.getElementById('vwt-live-runner-modal');
     modal.classList.add('hidden');
     document.body.classList.remove('modal-open');
@@ -444,12 +443,10 @@ function vwt_minimizeLiveRunner() {
 
 /**
  * Closes a runner, either from the modal view or the minimize bar.
- * @param {boolean|string} fromModalOrRunnerId - If true, closes the active modal. Otherwise, closes the runner with the given ID.
  */
 function vwt_closeLiveRunner(fromModalOrRunnerId) {
     const runnerId = fromModalOrRunnerId === true ? vwt_activeRunnerIdInModal : fromModalOrRunnerId;
     if (!runnerId) {
-        // Just hide the modal if no specific runner is targeted
         const modal = document.getElementById('vwt-live-runner-modal');
         if (modal) modal.classList.add('hidden');
         document.body.classList.remove('modal-open');
@@ -459,10 +456,7 @@ function vwt_closeLiveRunner(fromModalOrRunnerId) {
     const runner = activeTestRunners.get(runnerId);
     if (!runner) return;
 
-    // Clean up DOM
     runner.iframe.remove(); 
-    
-    // Clean up state
     activeTestRunners.delete(runnerId);
     vwt_removeTestFromMinimizeBar(runnerId);
 
@@ -476,7 +470,6 @@ function vwt_closeLiveRunner(fromModalOrRunnerId) {
 
 /**
  * The core test execution logic for a given runner.
- * @param {string} runnerId - The ID of the runner to execute.
  */
 async function vwt_runLiveTestFromRunner(runnerId) {
     if (!runnerId) runnerId = vwt_activeRunnerIdInModal;
@@ -487,11 +480,9 @@ async function vwt_runLiveTestFromRunner(runnerId) {
     runner.status = 'RUNNING';
     vwt_updateMinimizeBarItem(runnerId);
     
-    // A log function specific to this runner instance
     const runnerLog = (message) => {
         const timestampedMessage = `[${new Date().toLocaleTimeString()}] ${message}`;
         runner.log.push(timestampedMessage);
-        // If this runner is currently being viewed, update the textarea
         if (vwt_activeRunnerIdInModal === runnerId) {
             const logArea = document.getElementById('vwt-runner-logs');
             logArea.value += timestampedMessage + '\n';
@@ -499,14 +490,13 @@ async function vwt_runLiveTestFromRunner(runnerId) {
         }
     };
 
-    // Update UI if this runner is active in the modal
     if (vwt_activeRunnerIdInModal === runnerId) {
         const rerunButton = document.getElementById('vwt-runner-rerun-btn');
         rerunButton.disabled = true;
         rerunButton.innerHTML = `<div class="spinner mr-2"></div> Running...`;
-        document.getElementById('vwt-runner-logs').value = ''; // Clear logs on re-run
+        document.getElementById('vwt-runner-logs').value = '';
     }
-    runner.log.length = 0; // Clear internal log array
+    runner.log.length = 0;
 
     runnerLog("--- Starting Live Test Run ---");
     
@@ -535,7 +525,6 @@ async function vwt_runLiveTestFromRunner(runnerId) {
             const stepConfig = vwt_availableSteps.find(s => s.name === step.name);
             runnerLog(`[Step ${i + 1}/${runner.steps.length}] Running: ${step.name}`);
             
-            // Highlight step if visible
             if (vwt_activeRunnerIdInModal === runnerId) {
                 const canvas = document.getElementById('vwt-runner-canvas');
                 canvas.querySelectorAll('.aero-card').forEach(el => 
@@ -558,7 +547,6 @@ async function vwt_runLiveTestFromRunner(runnerId) {
     } finally {
         runner.isExecuting = false;
         vwt_updateMinimizeBarItem(runnerId);
-        // Reset UI if visible
         if (vwt_activeRunnerIdInModal === runnerId) {
             const rerunButton = document.getElementById('vwt-runner-rerun-btn');
             rerunButton.disabled = false;
@@ -603,7 +591,6 @@ function vwt_addTestToMinimizeBar(runnerId) {
     item.className = 'minimized-test-item';
     item.id = `minimized-test-${runnerId}`;
     
-    // Main body of the item maximizes the runner
     item.onclick = (e) => {
         if (e.target.closest('.close-btn')) return;
         vwt_maximizeLiveRunner(runnerId);
@@ -640,7 +627,6 @@ function vwt_updateMinimizeBarItem(runnerId) {
     const item = document.getElementById(`minimized-test-${runnerId}`);
     if (!item) return;
 
-    // Remove existing status classes
     item.classList.remove('status-success', 'status-failure');
     const spinner = item.querySelector('.spinner');
 
@@ -650,7 +636,7 @@ function vwt_updateMinimizeBarItem(runnerId) {
     } else if (runner.status === 'FAILURE') {
         item.classList.add('status-failure');
         if(spinner) spinner.style.display = 'none';
-    } else { // RUNNING or INITIALIZING
+    } else { 
         if(spinner) spinner.style.display = 'inline-block';
     }
 }
