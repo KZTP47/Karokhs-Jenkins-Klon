@@ -481,13 +481,19 @@
             </div>
         </div>
     </div>
+
     <div id="vwt-live-runner-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop modal-open">
         <div class="aero-modal p-0 w-full max-w-[95vw] h-[90vh] flex flex-col">
             <header class="p-4 border-b aero-divider flex justify-between items-center flex-shrink-0">
-                <h2 class="text-2xl font-bold aero-text-primary">✨ Visual Web Tester (Live Runner)</h2>
+                <h2 id="vwt-runner-modal-title" class="text-2xl font-bold aero-text-primary">✨ Visual Web Tester (Live Runner)</h2>
                 <div class="flex space-x-3">
-                    <button onclick="vwt_runLiveTestFromRunner()" class="aero-button-success py-2 px-4 rounded-lg">▶ Run Live Test</button>
-                    <button onclick="vwt_closeLiveRunner()" class="aero-button-gray py-2 px-4 rounded-lg">Close</button>
+                    <button id="vwt-runner-rerun-btn" onclick="vwt_runLiveTestFromRunner()" class="aero-button-success py-2 px-4 rounded-lg">▶ Re-run Test</button>
+                    <button onclick="vwt_minimizeLiveRunner()" class="aero-button-info p-2 rounded-lg" title="Minimize">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                          <path fill-rule="evenodd" d="M2 8a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11A.5.5 0 0 1 2 8z"/>
+                        </svg>
+                    </button>
+                    <button onclick="vwt_closeLiveRunner(true)" class="aero-button-gray py-2 px-4 rounded-lg">Close</button>
                 </div>
             </header>
             
@@ -500,9 +506,8 @@
 
                 <main class="w-2/3 p-4 flex flex-col overflow-y-hidden">
                     <h3 class="text-lg font-semibold aero-text-secondary mb-3">2. Preview & Run</h3>
-                    <div class="flex-grow border aero-divider rounded-lg overflow-hidden">
-                        <iframe id="vwt-runner-iframe" class="w-full h-full" src="about:blank" title="Sandboxed Website Preview"></iframe>
-                    </div>
+                    <div id="vwt-runner-iframe-container" class="flex-grow border aero-divider rounded-lg overflow-hidden bg-gray-800">
+                        </div>
                     <div class="flex-shrink-0 pt-4">
                         <h4 class="text-md font-semibold aero-text-secondary mb-2">Live Test Logs</h4>
                         <textarea id="vwt-runner-logs" rows="8" class="w-full code-area p-3 rounded-lg font-mono text-sm" readonly placeholder="Test logs will appear here..."></textarea>
@@ -511,6 +516,7 @@
             </div>
         </div>
     </div>
+    
     <div id="suite-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop modal-open"
          onclick="if (event.target.id === 'suite-modal') closeEditorModal()">
         <div class="aero-modal p-6 sm:p-8 w-full max-w-5xl max-h-[90vh] overflow-y-auto"
@@ -777,6 +783,17 @@
             </div>
         </div>
     </div>
+
+    <div id="minimize-bar" class="hidden fixed bottom-0 left-0 right-0 h-16 aero-header p-2 flex items-center z-40">
+        <button id="minimize-bar-toggle-left" class="aero-button-gray h-12 w-10 text-xl font-bold rounded-lg flex-shrink-0">«</button>
+        <div id="minimize-bar-items-wrapper" class="flex-1 h-full mx-2 overflow-x-auto overflow-y-hidden">
+            <div id="minimize-bar-items-container" class="flex h-full items-center space-x-2">
+                </div>
+        </div>
+        <button id="minimize-bar-toggle-right" class="aero-button-gray h-12 w-10 text-xl font-bold rounded-lg flex-shrink-0">»</button>
+    </div>
+
+    <div id="hidden-iframes-container" class="hidden"></div>
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
