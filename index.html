@@ -1,826 +1,914 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LVX-Machina - Automated Test Manager</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
-    <link rel="stylesheet" href="styles.css">
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>LVX-Machina - Automated Test Manager</title>
+ <script src="https://cdn.tailwindcss.com"></script>
+ <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+ <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+ <link rel="stylesheet" href="styles.css">
+ 
+ <!-- Monaco Editor -->
+ <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/editor/editor.main.css">
+ <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
 </head>
 <body class="p-4 sm:p-8">
 
-    <div id="app" class="max-w-7xl mx-auto flex gap-4">
-        <aside id="views-panel" class="w-64 flex-shrink-0 aero-card p-4 rounded-lg" style="max-height: calc(100vh - 4rem); overflow-y: auto;">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold aero-text-primary">📁 Views</h2>
-                <button onclick="openAddViewModal()" 
-                    class="aero-button-success text-sm py-1 px-3 rounded transition duration-200" 
-                    title="Add New View">
-                    +
-                </button>
-            </div>
-            
-            <div id="views-list" class="space-y-2">
-                </div>
-        </aside>
+ <div id="app" class="max-w-7xl mx-auto flex gap-4">
+ <aside id="views-panel" class="w-64 flex-shrink-0 aero-card p-4 rounded-lg" style="max-height: calc(100vh - 4rem); overflow-y: auto;">
+ <div class="flex justify-between items-center mb-4">
+<h2 class="text-xl font-bold aero-text-primary">📁 Views</h2>
+ <button onclick="openAddViewModal()" 
+ class="aero-button-success text-sm py-1 px-3 rounded transition duration-200" 
+ title="Add New View">
+ +
+ </button>
+ </div>
+ 
+ <div id="views-list" class="space-y-2">
+ </div>
+ </aside>
 
-        <div class="flex-1">
-            <header class="mb-8 flex flex-col sm:flex-row justify-between items-center pb-4 aero-header">
-                <h1 class="text-4xl font-extrabold aero-text-primary mb-4 sm:mb-0">LVX-Machina - Automated Test Manager</h1>
-                <div class="flex flex-col sm:flex-row flex-wrap gap-2">
-                    <button onclick="openVisualWebTester()"
-                        class="aero-button-primary w-full sm:w-auto py-2 px-4 rounded-lg shadow-lg transition duration-200 order-first sm:order-none">
-                        ✨ Create Visual Web Test
-                    </button>
-                    <div class="flex space-x-3 flex-wrap gap-2">
-                        <button onclick="openExecutionSettingsModal()"
-                            class="aero-button-warning py-2 px-4 rounded-lg shadow-lg transition duration-200">
-                            Execution Settings
-                        </button>
-                        <button onclick="openSettingsModal()"
-                            class="aero-button-purple py-2 px-4 rounded-lg shadow-lg transition duration-200">
-                            Storage Settings
-                        </button>
-                        <button onclick="openAddSuiteModal()"
-                            class="aero-button-success py-2 px-4 rounded-lg shadow-lg transition duration-200">
-                            + Add New Test Suite
-                        </button>
-                        
-                        <label for="import-file-input" class="aero-button-info py-2 px-4 rounded-lg shadow-lg transition duration-200 cursor-pointer flex items-center">
-                            Import JSON
-                        </label>
-                        <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="importFromJSON(event)">
-                        
-                        <button onclick="exportToJSON()"
-                            class="aero-button-gray py-2 px-4 rounded-lg shadow-lg transition duration-200">
-                            Export JSON
-                        </button>
-                    </div>
-                </div>
-            </header>
+ <div class="flex-1">
+ <header class="mb-8 flex flex-col sm:flex-row justify-between items-center pb-4 aero-header">
+ <h1 class="text-4xl font-extrabold aero-text-primary mb-4 sm:mb-0">LVX-Machina - Automated Test Manager</h1>
+ <div class="flex flex-col sm:flex-row flex-wrap gap-2">
+ <button id="OpenVisualWebTester" onclick="openVisualWebTester()"
+ class="aero-button-primary w-full sm:w-auto py-2 px-4 rounded-lg shadow-lg transition duration-200 order-first sm:order-none">
+ Create Visual Web Test
+ </button>
+ <div class="flex space-x-3 flex-wrap gap-2">
+ <button id="openExecutionSettingsModal" onclick="openExecutionSettingsModal()"
+ class="aero-button-warning py-2 px-4 rounded-lg shadow-lg transition duration-200">
+ Execution Settings
+ </button>
+ <button id="openSettingsModal" onclick="openSettingsModal()"
+ class="aero-button-purple py-2 px-4 rounded-lg shadow-lg transition duration-200">
+ Storage Settings
+ </button>
+ <button id="openAddSuiteModal" onclick="openAddSuiteModal()"
+ class="aero-button-success py-2 px-4 rounded-lg shadow-lg transition duration-200">
+ + Add New Test Suite
+ </button>
+ 
+ <label for="import-file-input" class="aero-button-info py-2 px-4 rounded-lg shadow-lg transition duration-200 cursor-pointer flex items-center">
+ Import JSON
+ </label>
+ <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="importFromJSON(event)">
+ 
+ <button onclick="exportToJSON()"
+ class="aero-button-gray py-2 px-4 rounded-lg shadow-lg transition duration-200">
+ Export JSON
+ </button>
+ </div>
+ </div>
+ </header>
 
-            <div id="storage-status" class="text-sm mb-4 p-3 aero-glass-panel">
-                <p id="storage-info" class="aero-text-secondary">Initializing storage...</p>
-            </div>
+ <div id="storage-status" class="text-sm mb-4 p-3 aero-glass-panel">
+ <p id="storage-info" class="aero-text-secondary">Initializing storage...</p>
+ </div>
 
-            <div id="execution-status" class="text-sm mb-4 p-3 aero-glass-panel border-l-4 border-blue-500">
-                <p id="execution-info" class="aero-text-secondary">Execution Mode: <span id="exec-mode-display" class="font-semibold">Loading...</span></p>
-            </div>
+ <div id="execution-status" class="text-sm mb-4 p-3 aero-glass-panel border-l-4 border-blue-500">
+ <p id="execution-info" class="aero-text-secondary">Execution Mode: <span id="exec-mode-display" class="font-semibold">Loading...</span></p>
+ </div>
 
-            <main id="suite-list-container">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold aero-text-primary">
-                        Configured Test Suites 
-                        <span id="current-view-name" class="text-lg aero-text-muted"></span>
-                    </h2>
-                </div>
-                <div id="test-suites" class="space-y-6">
-                    <p id="loading-message" class="aero-text-muted">Loading test suites...</p>
-                </div>
-            </main>
+ <main id="suite-list-container">
+ <!-- Search and Filter Toolbar -->
+ <div class='mb-4 p-4 aero-glass-panel'>
+ <div class='flex gap-3 flex-wrap'>
+ <!-- Search Bar -->
+ <div class='flex-1 min-w-[200px]'>
+ <input type='text' id='suite-search' 
+ class='w-full aero-input p-2 rounded-lg' 
+ placeholder='🔍 Search test suites...'
+ oninput='filterSuites()'>
+ </div>
+ 
+ <!-- Tag Filter -->
+ <div class='w-48'>
+ <select id='tag-filter' class='w-full aero-button p-2 rounded-lg' onchange='filterSuites()'>
+ <option value=''>All Tags</option>
+ <!-- Populated dynamically -->
+ </select>
+ </div>
+ 
+ <!-- Language Filter -->
+ <div class='w-40'>
+ <select id='language-filter' class='w-full aero-button p-2 rounded-lg' onchange='filterSuites()'>
+ <option value=''>All Languages</option>
+ <option value='python'>Python</option>
+ <option value='robot'>Robot Framework</option>
+ <option value='java'>Java</option>
+ <option value='csharp'>C#</option>
+ <option value='website'>Website</option>
+ </select>
+ </div>
+ 
+ <!-- Sort Options -->
+ <div class='w-48'>
+ <select id='sort-option' class='w-full aero-button p-2 rounded-lg' onchange='filterSuites()'>
+ <option value='dateModified'>Recently Modified</option>
+ <option value='dateCreated'>Recently Created</option>
+ <option value='name'>Name (A-Z)</option>
+ <option value='favorites'>Favorites First</option>
+ </select>
+ </div>
+ 
+ <!-- Bulk Selection Mode -->
+ <button id='bulk-mode-toggle' onclick='toggleBulkMode()' 
+ class='aero-button-info px-4 py-2 rounded-lg'>
+ ☑️ Bulk Select
+ </button>
+ </div>
+ </div>
 
-            <div id="message-box" class="fixed top-5 right-5 z-50 transition-all duration-300 transform translate-x-full">
-            </div>
-        </div>
-    </div>
+ <!-- Bulk Actions Toolbar -->
+ <div id='bulk-actions-toolbar' class='hidden mb-4 p-3 aero-glass-panel flex gap-3 items-center'>
+ <span class='aero-text-secondary font-semibold'>
+ <span id='selected-count'>0</span> selected
+ </span>
+ <button onclick='bulkRun()' class='aero-button-primary px-4 py-2 rounded-lg'>
+ ▶️ Run Selected
+ </button>
+ <button onclick='bulkDelete()' class='aero-button-danger px-4 py-2 rounded-lg'>
+ 🗑️ Delete Selected
+ </button>
+ <button onclick='bulkExport()' class='aero-button-info px-4 py-2 rounded-lg'>
+ 💾 Export Selected
+ </button>
+ <button onclick='bulkAddTag()' class='aero-button-success px-4 py-2 rounded-lg'>
+ 🏷️ Add Tag to Selected
+ </button>
+ </div>
+
+ <div class="flex justify-between items-center mb-4">
+ <h2 class="text-2xl font-bold aero-text-primary">
+ Configured Test Suites 
+ <span id="current-view-name" class="text-lg aero-text-muted"></span>
+ </h2>
+ </div>
+ <div id="test-suites" class="space-y-6">
+ <p id="loading-message" class="aero-text-muted">Loading test suites...</p>
+ </div>
+ </main>
+
+ <div id="message-box" class="fixed top-5 right-5 z-50 transition-all duration-300 transform translate-x-full">
+ </div>
+ </div>
+ </div>
 	<div id="add-view-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop">
-        <div class="aero-modal p-6 w-full max-w-md">
-            <h3 class="text-2xl font-bold mb-4 aero-text-primary">Create New View</h3>
-            <form onsubmit="createView(event)">
-                <div class="mb-4">
-                    <label for="view-name" class="block text-sm font-medium aero-text-secondary mb-2">View Name</label>
-                    <input type="text" id="view-name" required 
-                        class="w-full aero-input p-3 rounded-lg" 
-                        placeholder="e.g., Frontend Tests, Backend Tests">
-                </div>
-                <div class="mb-4">
-                    <label for="view-description" class="block text-sm font-medium aero-text-secondary mb-2">Description (Optional)</label>
-                    <textarea id="view-description" rows="3" 
-                        class="w-full aero-input p-3 rounded-lg" 
-                        placeholder="Brief description of this view"></textarea>
-                </div>
-                <div class="flex justify-end space-x-3">
-                    <button type="button" onclick="closeAddViewModal()"
-                        class="aero-button-gray py-2 px-4 rounded-lg transition duration-200">
-                        Cancel
-                    </button>
-                    <button type="submit"
-                        class="aero-button-success py-2 px-4 rounded-lg transition duration-200">
-                        Create View
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+ <div class="aero-modal p-6 w-full max-w-md">
+ <h3 class="text-2xl font-bold mb-4 aero-text-primary">Create New View</h3>
+ <form onsubmit="createView(event)">
+ <div class="mb-4">
+ <label for="view-name" class="block text-sm font-medium aero-text-secondary mb-2">View Name</label>
+ <input type="text" id="view-name" required 
+ class="w-full aero-input p-3 rounded-lg" 
+ placeholder="e.g., Frontend Tests, Backend Tests">
+ </div>
+ <div class="mb-4">
+ <label for="view-description" class="block text-sm font-medium aero-text-secondary mb-2">Description (Optional)</label>
+ <textarea id="view-description" rows="3" 
+ class="w-full aero-input p-3 rounded-lg" 
+ placeholder="Brief description of this view"></textarea>
+ </div>
+ <div class="flex justify-end space-x-3">
+ <button type="button" onclick="closeAddViewModal()"
+ class="aero-button-gray py-2 px-4 rounded-lg transition duration-200">
+ Cancel
+ </button>
+ <button type="submit"
+ class="aero-button-success py-2 px-4 rounded-lg transition duration-200">
+ Create View
+ </button>
+ </div>
+ </form>
+ </div>
+ </div>
 
-    <div id="execution-settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop">
-        <div class="aero-modal p-6 sm:p-8 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <h3 class="text-3xl font-bold mb-6 aero-text-primary">Execution Configuration</h3>
-            
-            <div class="mb-6">
-                <label class="block text-sm font-medium aero-text-secondary mb-3">Execution Mode</label>
-                <div class="space-y-3">
-                    <label class="flex items-start p-4 aero-button rounded-lg cursor-pointer hover:opacity-90">
-                        <input type="radio" name="execution-mode" value="real" checked class="mt-1 mr-3">
-                        <div>
-                            <div class="font-semibold aero-text-success">Real Execution (Recommended)</div>
-                            <div class="text-sm aero-text-muted">Actually run your code and see real output. Python & Robot Framework run in browser, Java/C# require API or local compiler.</div>
-                        </div>
-                    </label>
-                    
-                    <label class="flex items-start p-4 aero-button rounded-lg cursor-pointer hover:opacity-90">
-                        <input type="radio" name="execution-mode" value="simulated" class="mt-1 mr-3">
-                        <div>
-                            <div class="font-semibold aero-text-warning">Simulated Execution</div>
-                            <div class="text-sm aero-text-muted">Display code without running it. Useful for planning and documentation.</div>
-                        </div>
-                    </label>
-                </div>
-            </div>
-            
-            <div class="mb-6 p-4 aero-glass-panel border-l-4 border-blue-500">
-                <h4 class="font-semibold aero-text-primary mb-3">🌐 NEW: Website Integration Testing</h4>
-                <div class="text-sm aero-text-secondary mb-3">
-                    Test external websites or load your own site files for automated testing!
-                </div>
-                <div class="text-xs aero-text-muted">
-                    ✨ Perfect for testing tests made through website modules or any other web application<br>
-                    🔧 Upload site files (HTML/CSS/JS) or link to external URLs<br>
-                    🤖 Use Robot Framework to interact with forms, buttons, and elements
-                </div>
-            </div>
+ <div id="execution-settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop">
+ <div class="aero-modal p-6 sm:p-8 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+ <h3 class="text-3xl font-bold mb-6 aero-text-primary">Execution Configuration</h3>
+ 
+ <div class="mb-6">
+ <label class="block text-sm font-medium aero-text-secondary mb-3">Execution Mode</label>
+ <div class="space-y-3">
+ <label class="flex items-start p-4 aero-button rounded-lg cursor-pointer hover:opacity-90">
+ <input type="radio" name="execution-mode" value="real" checked class="mt-1 mr-3">
+ <div>
+ <div class="font-semibold aero-text-success">Real Execution (Recommended)</div>
+ <div class="text-sm aero-text-muted">Actually run your code and see real output. Python & Robot Framework run in browser, Java/C# require API or local compiler.</div>
+ </div>
+ </label>
+ 
+ <label class="flex items-start p-4 aero-button rounded-lg cursor-pointer hover:opacity-90">
+ <input type="radio" name="execution-mode" value="simulated" class="mt-1 mr-3">
+ <div>
+ <div class="font-semibold aero-text-warning">Simulated Execution</div>
+ <div class="text-sm aero-text-muted">Display code without running it. Useful for planning and documentation.</div>
+ </div>
+ </label>
+ </div>
+ </div>
+ 
+ <div class="mb-6 p-4 aero-glass-panel border-l-4 border-blue-500">
+ <h4 class="font-semibold aero-text-primary mb-3">🆕 NEW: Website Integration Testing</h4>
+ <div class="text-sm aero-text-secondary mb-3">
+ Test external websites or load your own site files for automated testing!
+ </div>
+ <div class="text-xs aero-text-muted">
+ Perfect for testing tests made through website modules or any other web application<br>
+ Upload site files (HTML/CSS/JS) or link to external URLs<br>
+ 🤖 Use Robot Framework to interact with forms, buttons, and elements
+ </div>
+ </div>
 
-            <div id="python-exec-config" class="mb-6 p-4 aero-modal rounded-lg border aero-divider">
-                <h4 class="font-semibold aero-text-primary mb-3">🐍 Python Execution</h4>
-                <div class="text-sm aero-text-muted mb-2">
-                    <span class="aero-text-success">✓ Browser-based execution via Pyodide (WebAssembly)</span>
-                </div>
-                <div class="text-xs aero-text-muted">
-                    Python code runs directly in your browser. No server needed. First run may take a few seconds to initialize.
-                </div>
-            </div>
+ <div id="python-exec-config" class="mb-6 p-4 aero-modal rounded-lg border aero-divider">
+ <h4 class="font-semibold aero-text-primary mb-3">🐍 Python Execution</h4>
+ <div class="text-sm aero-text-muted mb-2">
+ <span class="aero-text-success"> Browser-based execution via Pyodide (WebAssembly)</span>
+ </div>
+ <div class="text-xs aero-text-muted">
+ Python code runs directly in your browser. No server needed. First run may take a few seconds to initialize.
+ </div>
+ </div>
 
-            
-            <div id="robot-exec-config" class="mb-6 p-4 aero-modal rounded-lg border border-teal-700">
-                <h4 class="font-semibold aero-text-primary mb-3">🤖 Robot Framework Execution</h4>
-                <p class="text-xs aero-text-muted mb-3">Choose how to execute Robot Framework tests:</p>
-                
-                <div class="space-y-2 mb-3">
-                    <label class="flex items-center">
-                        <input type="radio" name="robot-execution-type" value="browser" checked class="mr-2">
-                        <span class="text-sm">✨ Browser-based (via Pyodide) - No setup required!</span>
-                    </label>
-                    <label class="flex items-center">
-                        <input type="radio" name="robot-execution-type" value="backend" class="mr-2">
-                        <span class="text-sm">Local Backend Server (for SeleniumLibrary/browser automation)</span>
-                    </label>
-                    <label class="flex items-center">
-                        <input type="radio" name="robot-execution-type" value="api" class="mr-2">
-                        <span class="text-sm">Remote API (Limited - basic tests only)</span>
-                    </label>
-                </div>
+ 
+ <div id="robot-exec-config" class="mb-6 p-4 aero-modal rounded-lg border border-teal-700">
+ <h4 class="font-semibold aero-text-primary mb-3">🤖 Robot Framework Execution</h4>
+ <p class="text-xs aero-text-muted mb-3">Choose how to execute Robot Framework tests:</p>
+ 
+ <div class="space-y-2 mb-3">
+ <label class="flex items-center">
+ <input type="radio" name="robot-execution-type" value="browser" checked class="mr-2">
+ <span class="text-sm"> Browser-based (via Pyodide) - No setup required!</span>
+ </label>
+ <label class="flex items-center">
+ <input type="radio" name="robot-execution-type" value="backend" class="mr-2">
+ <span class="text-sm">Local Backend Server (for SeleniumLibrary/browser automation)</span>
+ </label>
+ <label class="flex items-center">
+ <input type="radio" name="robot-execution-type" value="api" class="mr-2">
+ <span class="text-sm">Remote API (Limited - basic tests only)</span>
+ </label>
+ </div>
 
-                <div id="robot-browser-config" class="mb-3">
-                    <div class="text-xs aero-text-secondary aero-glass-panel p-2 rounded mb-2">
-                        ✓ <strong>Browser-based execution (Recommended)</strong><br>
-                        • Runs directly in your browser via WebAssembly<br>
-                        • Auto-installs Robot Framework on first run (~10-15 seconds)<br>
-                        • <strong>NEW: Includes BrowserLibrary for DOM automation!</strong><br>
-                        • Perfect for API tests, data validation, business logic<br>
-                        • Test forms, click buttons, verify page content<br>
-                        • No server, no API keys, no installation required!
-                    </div>
-                    <div class="text-xs aero-text-secondary aero-glass-panel p-2 rounded mb-2">
-                        <strong>📚 BrowserLibrary Keywords Available:</strong><br>
-                        • Click Element | Input Text | Get Text | Get Value<br>
-                        • Element Should Be Visible | Element Should Contain<br>
-                        • Page Should Contain | Element Should Exist<br>
-                        • Check Checkbox | Uncheck Checkbox<br>
-                        • Select From List | Execute JavaScript<br>
-                        • Wait For Element | Get Element Count
-                    </div>
-                    <div class="text-xs aero-text-warning aero-glass-panel p-2 rounded">
-                        <strong>Limitation:</strong> Same-origin policy applies (can only test current page/domain).
-                        Use backend server option for cross-origin testing with SeleniumLibrary.
-                    </div>
-                </div>
+ <div id="robot-browser-config" class="mb-3">
+ <div class="text-xs aero-text-secondary aero-glass-panel p-2 rounded mb-2">
+ <strong>Browser-based execution (Recommended)</strong><br>
+ Runs directly in your browser via WebAssembly<br>
+ Auto-installs Robot Framework on first run (~10-15 seconds)<br>
+ <strong>NEW: Includes BrowserLibrary for DOM automation!</strong><br>
+ Perfect for API tests, data validation, business logic<br>
+ Test forms, click buttons, verify page content<br>
+ No server, no API keys, no installation required!
+ </div>
+ <div class="text-xs aero-text-secondary aero-glass-panel p-2 rounded mb-2">
+ <strong> BrowserLibrary Keywords Available:</strong><br>
+ Click Element | Input Text | Get Text | Get Value<br>
+ Element Should Be Visible | Element Should Contain<br>
+ Page Should Contain | Element Should Exist<br>
+ Check Checkbox | Uncheck Checkbox<br>
+ Select From List | Execute JavaScript<br>
+ Wait For Element | Get Element Count
+ </div>
+ <div class="text-xs aero-text-warning aero-glass-panel p-2 rounded">
+ <strong>Limitation:</strong> Same-origin policy applies (can only test current page/domain).
+ Use backend server option for cross-origin testing with SeleniumLibrary.
+ </div>
+ </div>
 
-                <div id="robot-backend-config" class="hidden mb-3">
-                    <div class="mb-2">
-                        <label class="block text-xs aero-text-muted mb-1">Backend Server URL</label>
-                        <input type="text" id="robot-backend-url" value="http://localhost:5000" 
-                            class="w-full aero-glass-panel border border-blue-300 aero-text-primary p-2 rounded text-sm">
-                    </div>
-                    <div class="text-xs aero-text-muted aero-glass-panel p-2 rounded mb-2">
-                        <strong class="text-teal-300">Quick Setup:</strong><br>
-                        1. <code class="aero-button px-1">pip install robotframework robotframework-seleniumlibrary flask flask-cors</code><br>
-                        2. Run robot_server.py (included in download)<br>
-                        3. Install ChromeDriver or GeckoDriver for browser tests
-                    </div>
-                    <button type="button" onclick="window.open('https://robotframework.org/', '_blank')" 
-                        class="text-xs aero-text-primary hover:underline">
-                        → Robot Framework Documentation
-                    </button>
-                </div>
+ <div id="robot-backend-config" class="hidden mb-3">
+ <div class="mb-2">
+ <label class="block text-xs aero-text-muted mb-1">Backend Server URL</label>
+ <input type="text" id="robot-backend-url" value="http://localhost:5000" 
+ class="w-full aero-glass-panel border border-blue-300 aero-text-primary p-2 rounded text-sm">
+ </div>
+ <div class="text-xs aero-text-muted aero-glass-panel p-2 rounded mb-2">
+ <strong class="text-teal-300">Quick Setup:</strong><br>
+ 1. <code class="aero-button px-1">pip install robotframework robotframework-seleniumlibrary flask flask-cors</code><br>
+ 2. Run robot_server.py (included in download)<br>
+ 3. Install ChromeDriver or GeckoDriver for browser tests
+ </div>
+ <button type="button" onclick="window.open('https://robotframework.org/', '_blank')" 
+ class="text-xs aero-text-primary hover:underline">
+ Robot Framework Documentation
+ </button>
+ </div>
 
-                <div id="robot-api-config" class="hidden">
-                    <div class="text-xs aero-text-warning aero-glass-panel p-2 rounded mb-2">
-                        ⚠️ API execution is limited. Use browser or local backend for full features.
-                    </div>
-                    <div class="mb-2">
-                        <label class="block text-xs aero-text-muted mb-1">API Endpoint</label>
-                        <input type="text" id="robot-api-url" placeholder="https://your-robot-api.com/execute" 
-                            class="w-full aero-glass-panel border border-blue-300 aero-text-primary p-2 rounded text-sm">
-                    </div>
-                </div>
-            </div>
+ <div id="robot-api-config" class="hidden">
+ <div class="text-xs aero-text-warning aero-glass-panel p-2 rounded mb-2">
+ API execution is limited. Use browser or local backend for full features.
+ </div>
+ <div class="mb-2">
+ <label class="block text-xs aero-text-muted mb-1">API Endpoint</label>
+ <input type="text" id="robot-api-url" placeholder="https://your-robot-api.com/execute" 
+ class="w-full aero-glass-panel border border-blue-300 aero-text-primary p-2 rounded text-sm">
+ </div>
+ </div>
+ </div>
 
-            <div id="java-exec-config" class="mb-6 p-4 aero-modal rounded-lg border aero-divider">
-                <h4 class="font-semibold aero-text-primary mb-3">☕ Java Execution</h4>
-                <p class="text-xs aero-text-muted mb-3">Choose how to execute Java code:</p>
-                
-                <div class="space-y-2 mb-3">
-                    <label class="flex items-center">
-                        <input type="radio" name="java-execution-type" value="jdoodle" checked class="mr-2">
-                        <span class="text-sm">JDoodle API (requires free API key from jdoodle.com)</span>
-                    </label>
-                    <label class="flex items-center">
-                        <input type="radio" name="java-execution-type" value="local" class="mr-2">
-                        <span class="text-sm">Local compiler (requires Java installed + backend server)</span>
-                    </label>
-                </div>
+ <div id="java-exec-config" class="mb-6 p-4 aero-modal rounded-lg border aero-divider">
+ <h4 class="font-semibold aero-text-primary mb-3"> Java Execution</h4>
+ <p class="text-xs aero-text-muted mb-3">Choose how to execute Java code:</p>
+ 
+ <div class="space-y-2 mb-3">
+ <label class="flex items-center">
+ <input type="radio" name="java-execution-type" value="jdoodle" checked class="mr-2">
+ <span class="text-sm">JDoodle API (requires free API key from jdoodle.com)</span>
+ </label>
+ <label class="flex items-center">
+ <input type="radio" name="java-execution-type" value="local" class="mr-2">
+ <span class="text-sm">Local compiler (requires Java installed + backend server)</span>
+ </label>
+ </div>
 
-                <div id="jdoodle-config">
-                    <div class="mb-2">
-                        <label class="block text-xs aero-text-muted mb-1">JDoodle Client ID</label>
-                        <input type="text" id="jdoodle-client-id" placeholder="Get from jdoodle.com" 
-                            class="w-full aero-glass-panel border border-blue-300 aero-text-primary p-2 rounded text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs aero-text-muted mb-1">JDoodle Client Secret</label>
-                        <input type="text" id="jdoodle-client-secret" placeholder="Get from jdoodle.com" 
-                            class="w-full aero-glass-panel border border-blue-300 aero-text-primary p-2 rounded text-sm">
-                    </div>
-                    <a href="https://www.jdoodle.com/compiler-api" target="_blank" 
-                        class="text-xs aero-text-primary hover:underline mt-1 inline-block">
-                        → Get free API key (200 requests/day)
-                    </a>
-                </div>
-            </div>
+ <div id="jdoodle-config">
+ <div class="mb-2">
+ <label class="block text-xs aero-text-muted mb-1">JDoodle Client ID</label>
+ <input type="text" id="jdoodle-client-id" placeholder="Get from jdoodle.com" 
+ class="w-full aero-glass-panel border border-blue-300 aero-text-primary p-2 rounded text-sm">
+ </div>
+ <div>
+ <label class="block text-xs aero-text-muted mb-1">JDoodle Client Secret</label>
+ <input type="text" id="jdoodle-client-secret" placeholder="Get from jdoodle.com" 
+ class="w-full aero-glass-panel border border-blue-300 aero-text-primary p-2 rounded text-sm">
+ </div>
+ <a href="https://www.jdoodle.com/compiler-api" target="_blank" 
+ class="text-xs aero-text-primary hover:underline mt-1 inline-block">
+ Get free API key (200 requests/day)
+ </a>
+ </div>
+ </div>
 
-            <div id="csharp-exec-config" class="mb-6 p-4 aero-modal rounded-lg border aero-divider">
-                <h4 class="font-semibold aero-text-primary mb-3">#️⃣ C# Execution</h4>
-                <p class="text-xs aero-text-muted mb-3">Choose how to execute C# code:</p>
-                
-                <div class="space-y-2 mb-3">
-                    <label class="flex items-center">
-                        <input type="radio" name="csharp-execution-type" value="jdoodle" checked class="mr-2">
-                        <span class="text-sm">JDoodle API (same credentials as Java)</span>
-                    </label>
-                    <label class="flex items-center">
-                        <input type="radio" name="csharp-execution-type" value="local" class="mr-2">
-                        <span class="text-sm">Local compiler (requires .NET/Mono + backend server)</span>
-                    </label>
-                </div>
-            </div>
+ <div id="csharp-exec-config" class="mb-6 p-4 aero-modal rounded-lg border aero-divider">
+                <h4 class="font-semibold aero-text-primary mb-3">C# Execution</h4>
+ <p class="text-xs aero-text-muted mb-3">Choose how to execute C# code:</p>
+ 
+ <div class="space-y-2 mb-3">
+ <label class="flex items-center">
+ <input type="radio" name="csharp-execution-type" value="jdoodle" checked class="mr-2">
+ <span class="text-sm">JDoodle API (same credentials as Java)</span>
+ </label>
+ <label class="flex items-center">
+ <input type="radio" name="csharp-execution-type" value="local" class="mr-2">
+ <span class="text-sm">Local compiler (requires .NET/Mono + backend server)</span>
+ </label>
+ </div>
+ </div>
 
-            <script>
-                // Toggle robot execution type configs
-                document.querySelectorAll('input[name="robot-execution-type"]').forEach(radio => {
-                    radio.addEventListener('change', (e) => {
-                        document.getElementById('robot-browser-config').classList.toggle('hidden', e.target.value !== 'browser');
-                        document.getElementById('robot-backend-config').classList.toggle('hidden', e.target.value !== 'backend');
-                        document.getElementById('robot-api-config').classList.toggle('hidden', e.target.value !== 'api');
-                    });
-                });
-            </script>
+ <script>
+ // Toggle robot execution type configs
+ document.querySelectorAll('input[name="robot-execution-type"]').forEach(radio => {
+ radio.addEventListener('change', (e) => {
+ document.getElementById('robot-browser-config').classList.toggle('hidden', e.target.value !== 'browser');
+ document.getElementById('robot-backend-config').classList.toggle('hidden', e.target.value !== 'backend');
+ document.getElementById('robot-api-config').classList.toggle('hidden', e.target.value !== 'api');
+ });
+ });
+ </script>
 
-            <div class="flex justify-end space-x-3">
-                <button onclick="closeExecutionSettingsModal()"
-                    class="aero-button-gray py-2 px-4 rounded-lg transition duration-200">
-                    Cancel
-                </button>
-                <button onclick="saveExecutionSettings()"
-                    class="aero-button-success py-2 px-4 rounded-lg transition duration-200">
-                    Save Settings
-                </button>
-            </div>
-        </div>
-    </div>
+ <div class="flex justify-end space-x-3">
+ <button onclick="closeExecutionSettingsModal()"
+ class="aero-button-gray py-2 px-4 rounded-lg transition duration-200">
+ Cancel
+ </button>
+ <button onclick="saveExecutionSettings()"
+ class="aero-button-success py-2 px-4 rounded-lg transition duration-200">
+ Save Settings
+ </button>
+ </div>
+ </div>
+ </div>
 
-    <div id="settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop">
-        <div class="aero-modal p-6 sm:p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h3 class="text-3xl font-bold mb-6 aero-text-primary">Storage Configuration</h3>
-            
-            <div class="mb-6">
-                <label class="block text-sm font-medium aero-text-secondary mb-3">Storage Type</label>
-                <div class="space-y-3">
-                    <label class="flex items-start p-4 aero-button rounded-lg cursor-pointer hover:opacity-90">
-                        <input type="radio" name="storage-type" value="localStorage" checked class="mt-1 mr-3">
-                        <div>
-                            <div class="font-semibold aero-text-primary">Browser Local Storage (Default)</div>
-                            <div class="text-sm aero-text-muted">Stores test suites locally in your browser. Simple and fast, but limited to this device.</div>
-                        </div>
-                    </label>
-                    
-                    <label class="flex items-start p-4 aero-button rounded-lg cursor-pointer hover:opacity-90">
-                        <input type="radio" name="storage-type" value="firebase" class="mt-1 mr-3">
-                        <div>
-                            <div class="font-semibold aero-text-primary">Firebase Cloud Storage</div>
-                            <div class="text-sm aero-text-muted">Sync your test suites across devices using Google Firebase.</div>
-                        </div>
-                    </label>
-                    
-                    <label class="flex items-start p-4 aero-button rounded-lg cursor-pointer hover:opacity-90">
-                        <input type="radio" name="storage-type" value="customApi" class="mt-1 mr-3">
-                        <div>
-                            <div class="font-semibold aero-text-primary">Custom API Backend</div>
-                            <div class="text-sm aero-text-muted">Connect to your own backend API for custom storage.</div>
-                        </div>
-                    </label>
-                </div>
-            </div>
+ <div id="settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop">
+ <div class="aero-modal p-6 sm:p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+ <h3 class="text-3xl font-bold mb-6 aero-text-primary">Storage Configuration</h3>
+ 
+ <div class="mb-6">
+ <label class="block text-sm font-medium aero-text-secondary mb-3">Storage Type</label>
+ <div class="space-y-3">
+ <label class="flex items-start p-4 aero-button rounded-lg cursor-pointer hover:opacity-90">
+ <input type="radio" name="storage-type" value="localStorage" checked class="mt-1 mr-3">
+ <div>
+ <div class="font-semibold aero-text-primary">Browser Local Storage (Default)</div>
+ <div class="text-sm aero-text-muted">Stores test suites locally in your browser. Simple and fast, but limited to this device.</div>
+ </div>
+ </label>
+ 
+ <label class="flex items-start p-4 aero-button rounded-lg cursor-pointer hover:opacity-90">
+ <input type="radio" name="storage-type" value="firebase" class="mt-1 mr-3">
+ <div>
+ <div class="font-semibold aero-text-primary">Firebase Cloud Storage</div>
+ <div class="text-sm aero-text-muted">Sync your test suites across devices using Google Firebase.</div>
+ </div>
+ </label>
+ 
+ <label class="flex items-start p-4 aero-button rounded-lg cursor-pointer hover:opacity-90">
+ <input type="radio" name="storage-type" value="customApi" class="mt-1 mr-3">
+ <div>
+ <div class="font-semibold aero-text-primary">Custom API Backend</div>
+ <div class="text-sm aero-text-muted">Connect to your own backend API for custom storage.</div>
+ </div>
+ </label>
+ </div>
+ </div>
 
-            <div id="firebase-config" class="hidden mb-6 p-4 aero-modal rounded-lg border aero-divider">
-                <h4 class="font-semibold aero-text-primary mb-3">Firebase Configuration</h4>
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-medium aero-text-secondary mb-1">API Key</label>
-                        <input type="text" id="firebase-api-key" class="w-full aero-input p-2 rounded text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium aero-text-secondary mb-1">Auth Domain</label>
-                        <input type="text" id="firebase-auth-domain" class="w-full aero-input p-2 rounded text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium aero-text-secondary mb-1">Project ID</label>
-                        <input type="text" id="firebase-project-id" class="w-full aero-input p-2 rounded text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium aero-text-secondary mb-1">Storage Bucket</label>
-                        <input type="text" id="firebase-storage-bucket" class="w-full aero-input p-2 rounded text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium aero-text-secondary mb-1">App ID</label>
-                        <input type="text" id="firebase-app-id" class="w-full aero-input p-2 rounded text-sm">
-                    </div>
-                </div>
-            </div>
-            
-            <div id="custom-api-config" class="hidden mb-6 p-4 aero-modal rounded-lg border aero-divider">
-                <h4 class="font-semibold aero-text-primary mb-3">Custom API Configuration</h4>
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-medium aero-text-secondary mb-1">API Base URL</label>
-                        <input type="text" id="custom-api-base-url" placeholder="https://api.yourserver.com/test-suites" 
-                            class="w-full aero-input p-2 rounded text-sm">
-                        <p class="text-xs aero-text-muted mt-1">Base URL for your test suite API endpoints</p>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium aero-text-secondary mb-1">Authorization Header (Optional)</label>
-                        <input type="text" id="custom-api-auth-header" placeholder="Bearer your-token-here" 
-                            class="w-full aero-input p-2 rounded text-sm">
-                        <p class="text-xs aero-text-muted mt-1">e.g., "Bearer token123" or "API-Key abc-xyz"</p>
-                    </div>
-                    <div class="text-xs aero-glass-panel p-3 rounded">
-                        <strong>Required API Endpoints:</strong><br>
-                        • GET {base_url} - List all test suites<br>
-                        • POST {base_url} - Create test suite<br>
-                        • PUT {base_url}/{id} - Update test suite<br>
-                        • DELETE {base_url}/{id} - Delete test suite
-                    </div>
-                </div>
-            </div>
+ <div id="firebase-config" class="hidden mb-6 p-4 aero-modal rounded-lg border aero-divider">
+ <h4 class="font-semibold aero-text-primary mb-3">Firebase Configuration</h4>
+ <div class="space-y-3">
+ <div>
+ <label class="block text-xs font-medium aero-text-secondary mb-1">API Key</label>
+ <input type="text" id="firebase-api-key" class="w-full aero-input p-2 rounded text-sm">
+ </div>
+ <div>
+ <label class="block text-xs font-medium aero-text-secondary mb-1">Auth Domain</label>
+ <input type="text" id="firebase-auth-domain" class="w-full aero-input p-2 rounded text-sm">
+ </div>
+ <div>
+ <label class="block text-xs font-medium aero-text-secondary mb-1">Project ID</label>
+ <input type="text" id="firebase-project-id" class="w-full aero-input p-2 rounded text-sm">
+ </div>
+ <div>
+ <label class="block text-xs font-medium aero-text-secondary mb-1">Storage Bucket</label>
+ <input type="text" id="firebase-storage-bucket" class="w-full aero-input p-2 rounded text-sm">
+ </div>
+ <div>
+ <label class="block text-xs font-medium aero-text-secondary mb-1">App ID</label>
+ <input type="text" id="firebase-app-id" class="w-full aero-input p-2 rounded text-sm">
+ </div>
+ </div>
+ </div>
+ 
+ <div id="custom-api-config" class="hidden mb-6 p-4 aero-modal rounded-lg border aero-divider">
+ <h4 class="font-semibold aero-text-primary mb-3">Custom API Configuration</h4>
+ <div class="space-y-3">
+ <div>
+ <label class="block text-xs font-medium aero-text-secondary mb-1">API Base URL</label>
+ <input type="text" id="custom-api-base-url" placeholder="https://api.yourserver.com/test-suites" 
+ class="w-full aero-input p-2 rounded text-sm">
+ <p class="text-xs aero-text-muted mt-1">Base URL for your test suite API endpoints</p>
+ </div>
+ <div>
+ <label class="block text-xs font-medium aero-text-secondary mb-1">Authorization Header (Optional)</label>
+ <input type="text" id="custom-api-auth-header" placeholder="Bearer your-token-here" 
+ class="w-full aero-input p-2 rounded text-sm">
+ <p class="text-xs aero-text-muted mt-1">e.g., "Bearer token123" or "API-Key abc-xyz"</p>
+ </div>
+ <div class="text-xs aero-glass-panel p-3 rounded">
+ <strong>Required API Endpoints:</strong><br>
+ GET {base_url} - List all test suites<br>
+ POST {base_url} - Create test suite<br>
+ PUT {base_url}/{id} - Update test suite<br>
+ DELETE {base_url}/{id} - Delete test suite
+ </div>
+ </div>
+ </div>
 
-            <script>
-                document.querySelectorAll('input[name="storage-type"]').forEach(radio => {
-                    radio.addEventListener('change', (e) => {
-                        document.getElementById('firebase-config').classList.toggle('hidden', e.target.value !== 'firebase');
-                        document.getElementById('custom-api-config').classList.toggle('hidden', e.target.value !== 'customApi');
-                    });
-                });
-            </script>
+ <script>
+ document.querySelectorAll('input[name="storage-type"]').forEach(radio => {
+ radio.addEventListener('change', (e) => {
+ document.getElementById('firebase-config').classList.toggle('hidden', e.target.value !== 'firebase');
+ document.getElementById('custom-api-config').classList.toggle('hidden', e.target.value !== 'customApi');
+ });
+ });
+ </script>
 
-            <div class="flex justify-end space-x-3">
-                <button onclick="closeSettingsModal()"
-                    class="aero-button-gray py-2 px-4 rounded-lg transition duration-200">
-                    Cancel
-                </button>
-                <button onclick="saveSettings()"
-                    class="aero-button-success py-2 px-4 rounded-lg transition duration-200">
-                    Save Settings
-                </button>
-            </div>
-        </div>
-    </div>
+ <div class="flex justify-end space-x-3">
+ <button onclick="closeSettingsModal()"
+ class="aero-button-gray py-2 px-4 rounded-lg transition duration-200">
+ Cancel
+ </button>
+ <button onclick="saveSettings()"
+ class="aero-button-success py-2 px-4 rounded-lg transition duration-200">
+ Save Settings
+ </button>
+ </div>
+ </div>
+ </div>
 
-    <div id="visual-web-tester-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop modal-open">
-        <div class="aero-modal p-0 w-full max-w-[95vw] h-[90vh] flex flex-col">
-            <header class="p-4 border-b aero-divider flex justify-between items-center flex-shrink-0">
-                <h2 class="text-2xl font-bold aero-text-primary">✨ Visual Web Tester</h2>
-                <div class="flex space-x-3">
-                    <button onclick="vwt_runTest()" class="aero-button-success py-2 px-4 rounded-lg">▶ Run Live Test</button>
-                    <button onclick="vwt_saveSuite()" class="aero-button-info py-2 px-4 rounded-lg">💾 Save as Test Suite</button>
-                    <button onclick="closeVisualWebTester()" class="aero-button-gray py-2 px-4 rounded-lg">Close</button>
-                </div>
-            </header>
-            
-            <div class="flex-grow flex min-h-0">
-                <aside class="w-1/4 p-4 border-r aero-divider overflow-y-auto flex flex-col">
-                    <div class="flex-shrink-0">
-                        <h3 class="text-lg font-semibold aero-text-secondary mb-3">1. Load Website</h3>
-                        <div class="space-y-3 aero-glass-panel p-3 rounded">
-                            <div>
-                                <label class="block text-sm font-medium aero-text-secondary mb-1">HTML File (Required)</label>
-                                <input type="file" id="vwt-html-file" accept=".html,.htm" class="w-full aero-input p-2 rounded-lg text-sm" onchange="vwt_handleFileUpload(this, 'html')">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium aero-text-secondary mb-1">CSS Files (Optional)</label>
-                                <input type="file" id="vwt-css-files" accept=".css" multiple class="w-full aero-input p-2 rounded-lg text-sm" onchange="vwt_handleFileUpload(this, 'css')">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium aero-text-secondary mb-1">JavaScript Files (Optional)</label>
-                                <input type="file" id="vwt-js-files" accept=".js" multiple class="w-full aero-input p-2 rounded-lg text-sm" onchange="vwt_handleFileUpload(this, 'js')">
-                            </div>
-                            <div id="vwt-files-preview" class="text-xs aero-text-muted p-2 aero-modal rounded">
-                                Upload files to begin...
-                            </div>
-                            <button onclick="vwt_renderIframe()" class="aero-button-primary w-full text-sm py-1 px-3 rounded">
-                                Reload Preview
-                            </button>
-                        </div>
-                    </div>
+ <div id="visual-web-tester-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop modal-open">
+ <div class="aero-modal p-0 w-full max-w-[95vw] h-[90vh] flex flex-col">
+ <header class="p-4 border-b aero-divider flex justify-between items-center flex-shrink-0">
+ <h2 class="text-2xl font-bold aero-text-primary"> Visual Web Tester</h2>
+ <div class="flex space-x-3">
+ <button onclick="vwt_runTest()" class="aero-button-success py-2 px-4 rounded-lg"> Run Live Test</button>
+ <button onclick="vwt_saveSuite()" class="aero-button-info py-2 px-4 rounded-lg"> Save as Test Suite</button>
+ <button onclick="closeVisualWebTester()" class="aero-button-gray py-2 px-4 rounded-lg">Close</button>
+ </div>
+ </header>
+ 
+ <div class="flex-grow flex min-h-0">
+ <aside class="w-1/4 p-4 border-r aero-divider overflow-y-auto flex flex-col">
+ <div class="flex-shrink-0">
+ <h3 class="text-lg font-semibold aero-text-secondary mb-3">1. Load Website</h3>
+ <div class="space-y-3 aero-glass-panel p-3 rounded">
+ <div>
+ <label class="block text-sm font-medium aero-text-secondary mb-1">HTML File (Required)</label>
+ <input type="file" id="vwt-html-file" accept=".html,.htm" class="w-full aero-input p-2 rounded-lg text-sm" onchange="vwt_handleFileUpload(this, 'html')">
+ </div>
+ <div>
+ <label class="block text-sm font-medium aero-text-secondary mb-1">CSS Files (Optional)</label>
+ <input type="file" id="vwt-css-files" accept=".css" multiple class="w-full aero-input p-2 rounded-lg text-sm" onchange="vwt_handleFileUpload(this, 'css')">
+ </div>
+ <div>
+ <label class="block text-sm font-medium aero-text-secondary mb-1">JavaScript Files (Optional)</label>
+ <input type="file" id="vwt-js-files" accept=".js" multiple class="w-full aero-input p-2 rounded-lg text-sm" onchange="vwt_handleFileUpload(this, 'js')">
+ </div>
+ <div id="vwt-files-preview" class="text-xs aero-text-muted p-2 aero-modal rounded">
+ Upload files to begin...
+ </div>
+ <button onclick="vwt_renderIframe()" class="aero-button-primary w-full text-sm py-1 px-3 rounded">
+ Reload Preview
+ </button>
+ </div>
+ </div>
 
-                    <div class="flex-shrink-0 mt-4">
-                        <h3 class="text-lg font-semibold aero-text-secondary mb-3">2. Add Steps</h3>
-                        <div id="vwt-toolbox" class="space-y-2">
-                            </div>
-                    </div>
-                </aside>
+ <div class="flex-shrink-0 mt-4">
+ <h3 class="text-lg font-semibold aero-text-secondary mb-3">2. Add Steps</h3>
+ <div id="vwt-toolbox" class="space-y-2">
+ </div>
+ </div>
+ </aside>
 
-                <main class="w-1/4 p-4 border-r aero-divider flex flex-col overflow-y-hidden">
-                    <h3 class="text-lg font-semibold aero-text-secondary mb-3">3. Build Test</h3>
-                    <div id="vwt-canvas" class="droppable-area flex-grow overflow-y-auto p-2">
-                        </div>
-                    <div id="vwt-properties" class="flex-shrink-0 pt-4 border-t aero-divider min-h-[200px] overflow-y-auto">
-                        </div>
-                </main>
+ <main class="w-1/4 p-4 border-r aero-divider flex flex-col overflow-y-hidden">
+ <h3 class="text-lg font-semibold aero-text-secondary mb-3">3. Build Test</h3>
+ <div id="vwt-canvas" class="droppable-area flex-grow overflow-y-auto p-2">
+ </div>
+ <div id="vwt-properties" class="flex-shrink-0 pt-4 border-t aero-divider min-h-[200px] overflow-y-auto">
+ </div>
+ </main>
 
-                <aside class="w-1/2 p-4 flex flex-col overflow-y-hidden">
-                    <h3 class="text-lg font-semibold aero-text-secondary mb-3">4. Preview & Run</h3>
-                    <div class="flex-grow border aero-divider rounded-lg overflow-hidden">
-                        <iframe id="vwt-iframe" class="w-full h-full" src="about:blank" title="Sandboxed Website Preview"></iframe>
-                    </div>
-                    <div class="flex-shrink-0 pt-4">
-                        <h4 class="text-md font-semibold aero-text-secondary mb-2">Live Test Logs</h4>
-                        <textarea id="vwt-logs" rows="8" class="w-full code-area p-3 rounded-lg font-mono text-sm" readonly placeholder="Test logs will appear here..."></textarea>
-                    </div>
-                </aside>
-            </div>
-        </div>
-    </div>
+ <aside class="w-1/2 p-4 flex flex-col overflow-y-hidden">
+ <h3 class="text-lg font-semibold aero-text-secondary mb-3">4. Preview & Run</h3>
+ <div class="flex-grow border aero-divider rounded-lg overflow-hidden">
+ <iframe id="vwt-iframe" class="w-full h-full" src="about:blank" title="Sandboxed Website Preview"></iframe>
+ </div>
+ <div class="flex-shrink-0 pt-4">
+ <h4 class="text-md font-semibold aero-text-secondary mb-2">Live Test Logs</h4>
+ <textarea id="vwt-logs" rows="8" class="w-full code-area p-3 rounded-lg font-mono text-sm" readonly placeholder="Test logs will appear here..."></textarea>
+ </div>
+ </aside>
+ </div>
+ </div>
+ </div>
 
-    <div id="vwt-live-runner-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop modal-open">
-        <div class="aero-modal p-0 w-full max-w-[95vw] h-[90vh] flex flex-col">
-            <header class="p-4 border-b aero-divider flex justify-between items-center flex-shrink-0">
-                <h2 id="vwt-runner-modal-title" class="text-2xl font-bold aero-text-primary">✨ Visual Web Tester (Live Runner)</h2>
-                <div class="flex space-x-3">
-                    <button id="vwt-runner-rerun-btn" onclick="vwt_runLiveTestFromRunner()" class="aero-button-success py-2 px-4 rounded-lg">▶ Re-run Test</button>
-                    <button onclick="vwt_minimizeLiveRunner()" class="aero-button-info p-2 rounded-lg" title="Minimize">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                          <path fill-rule="evenodd" d="M2 8a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11A.5.5 0 0 1 2 8z"/>
-                        </svg>
-                    </button>
-                    <button onclick="vwt_closeLiveRunner(true)" class="aero-button-gray py-2 px-4 rounded-lg">Close</button>
-                </div>
-            </header>
-            
-            <div class="flex-grow flex min-h-0">
-                <aside class="w-1/3 p-4 border-r aero-divider overflow-y-auto flex flex-col">
-                    <h3 class="text-lg font-semibold aero-text-secondary mb-3">1. Test Steps</h3>
-                    <div id="vwt-runner-canvas" class="flex-grow overflow-y-auto p-2 space-y-2">
-                        </div>
-                </aside>
+ <div id="vwt-live-runner-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop modal-open">
+ <div class="aero-modal p-0 w-full max-w-[95vw] h-[90vh] flex flex-col">
+ <header class="p-4 border-b aero-divider flex justify-between items-center flex-shrink-0">
+ <h2 id="vwt-runner-modal-title" class="text-2xl font-bold aero-text-primary"> Visual Web Tester (Live Runner)</h2>
+ <div class="flex space-x-3">
+ <button id="vwt-runner-rerun-btn" onclick="vwt_runLiveTestFromRunner()" class="aero-button-success py-2 px-4 rounded-lg"> Re-run Test</button>
+ <button onclick="vwt_minimizeLiveRunner()" class="aero-button-info p-2 rounded-lg" title="Minimize">
+ <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+ <path fill-rule="evenodd" d="M2 8a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11A.5.5 0 0 1 2 8z"/>
+ </svg>
+ </button>
+ <button onclick="vwt_closeLiveRunner(true)" class="aero-button-gray py-2 px-4 rounded-lg">Close</button>
+ </div>
+ </header>
+ 
+ <div class="flex-grow flex min-h-0">
+ <aside class="w-1/3 p-4 border-r aero-divider overflow-y-auto flex flex-col">
+ <h3 class="text-lg font-semibold aero-text-secondary mb-3">1. Test Steps</h3>
+ <div id="vwt-runner-canvas" class="flex-grow overflow-y-auto p-2 space-y-2">
+ </div>
+ </aside>
 
-                <main class="w-2/3 p-4 flex flex-col overflow-y-hidden">
-                    <h3 class="text-lg font-semibold aero-text-secondary mb-3">2. Preview & Run</h3>
-                    <div id="vwt-runner-iframe-container" class="flex-grow border aero-divider rounded-lg overflow-hidden bg-gray-800">
-                        </div>
-                    <div class="flex-shrink-0 pt-4">
-                        <h4 class="text-md font-semibold aero-text-secondary mb-2">Live Test Logs</h4>
-                        <textarea id="vwt-runner-logs" rows="8" class="w-full code-area p-3 rounded-lg font-mono text-sm" readonly placeholder="Test logs will appear here..."></textarea>
-                    </div>
-                </main>
-            </div>
-        </div>
-    </div>
-    
-    <div id="suite-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop modal-open"
-         onclick="if (event.target.id === 'suite-modal') closeEditorModal()">
-        <div class="aero-modal p-6 sm:p-8 w-full max-w-5xl max-h-[90vh] overflow-y-auto"
-             onclick="event.stopPropagation()">
-            <h3 id="modal-title" class="text-3xl font-bold mb-6 aero-text-primary">Add New Test Suite</h3>
-            <form id="suite-form" onsubmit="saveSuite(event)">
-                <input type="hidden" id="suite-id">
+ <main class="w-2/3 p-4 flex flex-col overflow-y-hidden">
+ <h3 class="text-lg font-semibold aero-text-secondary mb-3">2. Preview & Run</h3>
+ <div id="vwt-runner-iframe-container" class="flex-grow border aero-divider rounded-lg overflow-hidden">
+ </div>
+ <div class="flex-shrink-0 pt-4">
+ <h4 class="text-md font-semibold aero-text-secondary mb-2">Live Test Logs</h4>
+ <textarea id="vwt-runner-logs" rows="8" class="w-full code-area p-3 rounded-lg font-mono text-sm" readonly placeholder="Test logs will appear here..."></textarea>
+ </div>
+ </main>
+ </div>
+ </div>
+ </div>
+ 
+ <div id="suite-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop modal-open"
+ onclick="if (event.target.id === 'suite-modal') closeEditorModal()">
+ <div class="aero-modal p-6 sm:p-8 w-full max-w-5xl max-h-[90vh] overflow-y-auto"
+ onclick="event.stopPropagation()">
+ <h3 id="modal-title" class="text-3xl font-bold mb-6 aero-text-primary">Add New Test Suite</h3>
+ <form id="suite-form" onsubmit="saveSuite(event)">
+ <input type="hidden" id="suite-id">
 
-                <div class="mb-4">
-                    <label for="suite_name" class="block text-sm font-medium aero-text-secondary mb-1">Test Suite Name</label>
-                    <input type="text" id="suite_name" required class="w-full aero-input p-3 rounded-lg">
-                </div>
+ <div class="mb-4">
+ <label for="suite_name" class="block text-sm font-medium aero-text-secondary mb-1">Test Suite Name</label>
+ <input type="text" id="suite_name" required class="w-full aero-input p-3 rounded-lg">
+ </div>
 
-                <div class="mb-4">
-                    <label for="suite_description" class="block text-sm font-medium aero-text-secondary mb-1">Description</label>
-                    <textarea id="suite_description" rows="2" class="w-full aero-input p-3 rounded-lg"></textarea>
-                </div>
+ <div class="mb-4">
+ <label for="suite_description" class="block text-sm font-medium aero-text-secondary mb-1">Description</label>
+ <textarea id="suite_description" rows="2" class="w-full aero-input p-3 rounded-lg"></textarea>
+ </div>
 
-                <div class="mb-4">
-                    <label for="suite_view" class="block text-sm font-medium aero-text-secondary mb-1">Assign to View</label>
-                    <select id="suite_view" class="w-full aero-input p-3 rounded-lg">
-                        <option value="">All Views (Default)</option>
-                        </select>
-                    <p class="text-xs aero-text-muted mt-1">Select which view/folder this test suite belongs to</p>
-                </div>
+ <div class="mb-4">
+ <label for="suite_view" class="block text-sm font-medium aero-text-secondary mb-1">Assign to View</label>
+ <select id="suite_view" class="w-full aero-input p-3 rounded-lg">
+ <option value="">All Views (Default)</option>
+ </select>
+ <p class="text-xs aero-text-muted mt-1">Select which view/folder this test suite belongs to</p>
+ </div>
 
-                <div class="mb-4">
-                    <label for="suite_language" class="block text-sm font-medium aero-text-secondary mb-1">Programming Language / Framework</label>
-                    <select id="suite_language" class="w-full aero-input p-3 rounded-lg" onchange="updateCodeEditor()">
-                        <option value="python">Python</option>
-                        <option value="java">Java</option>
-                        <option value="csharp">C#</option>
-                        <option value="robot">Robot Framework</option>
-                        <option value="website">Website Integration Testing 🌐</option>
-                    </select>
-                </div>
+ <div class="mb-4">
+ <label for="suite_language" class="block text-sm font-medium aero-text-secondary mb-1">Programming Language / Framework</label>
+ <select id="suite_language" class="w-full aero-input p-3 rounded-lg" onchange="updateCodeEditor()">
+ <option value="python">Python</option>
+ <option value="java">Java</option>
+ <option value="csharp">C#</option>
+ <option value="robot">Robot Framework</option>
+ <option value="website">Website Integration Testing 🆕</option>
+ </select>
+ </div>
 
-                <div id="website-testing-config" class="hidden mb-6 p-4 aero-glass-panel border-l-4 border-blue-500 rounded-lg">
-                    <h4 class="font-semibold aero-text-primary mb-3">🌐 Website Integration Testing</h4>
-                    
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium aero-text-secondary mb-2">Website Source</label>
-                        <div class="space-y-2">
-                            <label class="flex items-center">
-                                <input type="radio" name="website-method" value="url" checked class="mr-2" onchange="toggleWebsiteMethod()">
-                                <span class="text-sm">External Website URL</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="radio" name="website-method" value="upload" class="mr-2" onchange="toggleWebsiteMethod()">
-                                <span class="text-sm">Upload Local Site Files (HTML/CSS/JS)</span>
-                            </label>
-                        </div>
-                    </div>
+ <div id="website-testing-config" class="hidden mb-6 p-4 aero-glass-panel border-l-4 border-blue-500 rounded-lg">
+ <h4 class="font-semibold aero-text-primary mb-3">🆕 Website Integration Testing</h4>
+ 
+ <div class="mb-4">
+ <label class="block text-sm font-medium aero-text-secondary mb-2">Website Source</label>
+ <div class="space-y-2">
+ <label class="flex items-center">
+ <input type="radio" name="website-method" value="url" checked class="mr-2" onchange="toggleWebsiteMethod()">
+ <span class="text-sm">External Website URL</span>
+ </label>
+ <label class="flex items-center">
+ <input type="radio" name="website-method" value="upload" class="mr-2" onchange="toggleWebsiteMethod()">
+ <span class="text-sm">Upload Local Site Files (HTML/CSS/JS)</span>
+ </label>
+ </div>
+ </div>
 
-                    <div id="website-url-config" class="mb-4">
-                        <label for="website_url" class="block text-sm font-medium aero-text-secondary mb-1">Website URL</label>
-                        <input type="url" id="website_url" placeholder="https://example.com" 
-                            class="w-full aero-input p-3 rounded-lg">
-                        <p class="text-xs aero-text-muted mt-1">URL of the website to test</p>
-                    </div>
+ <div id="website-url-config" class="mb-4">
+ <label for="website_url" class="block text-sm font-medium aero-text-secondary mb-1">Website URL</label>
+ <input type="url" id="website_url" placeholder="https://example.com" 
+ class="w-full aero-input p-3 rounded-lg">
+ <p class="text-xs aero-text-muted mt-1">URL of the website to test</p>
+ </div>
 
-                    <div id="website-upload-config" class="hidden space-y-3">
-                        <div>
-                            <label class="block text-sm font-medium aero-text-secondary mb-1">HTML File (Required)</label>
-                            <input type="file" id="website-html-file" accept=".html,.htm" class="w-full aero-input p-2 rounded-lg text-sm" onchange="handleWebsiteFile(this, 'html')">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium aero-text-secondary mb-1">CSS Files (Optional)</label>
-                            <input type="file" id="website-css-files" accept=".css" multiple class="w-full aero-input p-2 rounded-lg text-sm" onchange="handleWebsiteFile(this, 'css')">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium aero-text-secondary mb-1">JavaScript Files (Optional)</label>
-                            <input type="file" id="website-js-files" accept=".js" multiple class="w-full aero-input p-2 rounded-lg text-sm" onchange="handleWebsiteFile(this, 'js')">
-                        </div>
-                        <div id="website-files-preview" class="text-xs aero-text-muted p-2 aero-modal rounded">
-                            No files uploaded yet
-                        </div>
-                    </div>
+ <div id="website-upload-config" class="hidden space-y-3">
+ <div>
+ <label class="block text-sm font-medium aero-text-secondary mb-1">HTML File (Required)</label>
+ <input type="file" id="website-html-file" accept=".html,.htm" class="w-full aero-input p-2 rounded-lg text-sm" onchange="handleWebsiteFile(this, 'html')">
+ </div>
+ <div>
+ <label class="block text-sm font-medium aero-text-secondary mb-1">CSS Files (Optional)</label>
+ <input type="file" id="website-css-files" accept=".css" multiple class="w-full aero-input p-2 rounded-lg text-sm" onchange="handleWebsiteFile(this, 'css')">
+ </div>
+ <div>
+ <label class="block text-sm font-medium aero-text-secondary mb-1">JavaScript Files (Optional)</label>
+ <input type="file" id="website-js-files" accept=".js" multiple class="w-full aero-input p-2 rounded-lg text-sm" onchange="handleWebsiteFile(this, 'js')">
+ </div>
+ <div id="website-files-preview" class="text-xs aero-text-muted p-2 aero-modal rounded">
+ No files uploaded yet
+ </div>
+ </div>
 
-                    <div class="mt-4 p-3 aero-glass-panel rounded text-xs aero-text-muted">
-                        <strong>💡 How it works:</strong><br>
-                        1. Specify website URL or upload your site files<br>
-                        2. Write Robot Framework test cases below to interact with the site<br>
-                        3. Tests will run against the live site or your uploaded files<br>
-                        4. Perfect for testing forms, buttons, navigation, and content validation
-                    </div>
-                </div>
+ <div class="mt-4 p-3 aero-glass-panel rounded text-xs aero-text-muted">
+ <strong> How it works:</strong><br>
+ 1. Specify website URL or upload your site files<br>
+ 2. Write Robot Framework test cases below to interact with the site<br>
+ 3. Tests will run against the live site or your uploaded files<br>
+ 4. Perfect for testing forms, buttons, navigation, and content validation
+ </div>
+ </div>
 
-                <div class="mb-4 border-t aero-divider pt-4">
-                    <label class="block text-sm font-medium aero-text-secondary mb-1">Environment Parameters</label>
-                    <p class="text-xs aero-text-muted mb-2">Key-value pairs that can be accessed by your test code.</p>
-                    <div id="parameters-container" class="space-y-2 mb-2">
-                        </div>
-                    <button type="button" onclick="addParameterInput()"
-                        class="text-sm bg-emerald-500 hover:bg-emerald-400 aero-text-primary py-1 px-3 rounded-lg transition duration-200">
-                        + Add Parameter
-                    </button>
-                    <input type="hidden" id="parameters-json">
-                </div>
+ <div class="mb-4 border-t aero-divider pt-4">
+ <label class="block text-sm font-medium aero-text-secondary mb-1">Environment Parameters</label>
+ <p class="text-xs aero-text-muted mb-2">Key-value pairs that can be accessed by your test code.</p>
+ <div id="parameters-container" class="space-y-2 mb-2">
+ </div>
+ <button type="button" onclick="addParameterInput()"
+ class="text-sm bg-emerald-500 hover:bg-emerald-400 aero-text-primary py-1 px-3 rounded-lg transition duration-200">
+ + Add Parameter
+ </button>
+ <input type="hidden" id="parameters-json">
+ </div>
 
-                <div class="mb-4 border-t aero-divider pt-4">
-                    <label class="block text-sm font-medium aero-text-secondary mb-1">External Test Inputs (Mock Files)</label>
-                    <p class="text-xs aero-text-muted mb-3">Load files from your computer or manually enter content. You can add multiple files.</p>
-                    <div id="input-files-container" class="space-y-4">
-                        </div>
-                    <button type="button" onclick="addInputFile()"
-                        class="mt-3 text-sm bg-emerald-500 hover:bg-emerald-400 aero-text-primary py-1 px-3 rounded-lg transition duration-200">
-                        + Add Test Input
-                    </button>
-                </div>
+ <div class="mb-4 border-t aero-divider pt-4">
+ <label class="block text-sm font-medium aero-text-secondary mb-1">External Test Inputs (Mock Files)</label>
+ <p class="text-xs aero-text-muted mb-3">Load files from your computer or manually enter content. You can add multiple files.</p>
+ <div id="input-files-container" class="space-y-4">
+ </div>
+ <button type="button" onclick="addInputFile()"
+ class="mt-3 text-sm bg-emerald-500 hover:bg-emerald-400 aero-text-primary py-1 px-3 rounded-lg transition duration-200">
+ + Add Test Input
+ </button>
+ </div>
 
-                <div class="mb-4 border-t aero-divider pt-4">
-                    <div class="flex justify-between items-center mb-1">
-                        <label for="suite_code" class="block text-sm font-medium aero-text-secondary">
-                            <span id="code-label">Test Code</span>
-                        </label>
-                        <button type="button" onclick="openNoCodeBuilder()"
-                            class="aero-button-purple text-xs py-1 px-3 rounded transition">
-                            ✨ Launch RobotFrameWork Visual Builder
-                        </button>
-                    </div>
-                    <textarea id="suite_code" rows="12" class="w-full code-area p-3 rounded-lg font-mono text-sm" placeholder="Enter your test code here or use the Visual Builder..."></textarea>
-                    <div id="code-hint" class="text-xs aero-text-muted mt-1"></div>
-                </div>
+ <div class="mb-4 border-t aero-divider pt-4">
+ <label class="block text-sm font-medium aero-text-secondary mb-2">Tags</label>
+ <div id='tag-input-container' class='flex flex-wrap gap-2 mb-2'>
+ <!-- Tags appear here -->
+ </div>
+ <div class='flex gap-2'>
+ <input type='text' id='new-tag-input' 
+ class='flex-1 aero-input p-2 rounded-lg' 
+ placeholder='Add tag (press Enter)'
+ onkeypress='if(event.key==="Enter"){event.preventDefault();addTag()}'>
+ <button type='button' onclick='addTag()' 
+ class='aero-button-success px-3 rounded-lg'>+ Add</button>
+ </div>
+ </div>
 
-                <div class="mb-4">
-                    <label for="expected_output" class="block text-sm font-medium aero-text-secondary mb-1">Expected Output (Optional)</label>
-                    <textarea id="expected_output" rows="3" class="w-full code-area p-3 rounded-lg font-mono text-sm"></textarea>
-                </div>
+ <div class="mb-4 border-t aero-divider pt-4">
+ <div class="flex justify-between items-center mb-1">
+ <label for="suite_code" class="block text-sm font-medium aero-text-secondary">
+ <span id="code-label">Test Code</span>
+ </label>
+ <button type="button" onclick="openNoCodeBuilder()"
+ class="aero-button-purple text-xs py-1 px-3 rounded transition">
+ Launch RobotFrameWork Visual Builder
+ </button>
+ </div>
+ <div id="monaco-editor-container" style="height: 400px; border: 1px solid #B8D4E8; border-radius: 4px;"></div>
+ <div id="code-hint" class="text-xs aero-text-muted mt-1"></div>
+ </div>
 
-                <div class="mb-4 border-t aero-divider pt-4">
-                    <label for="webhook_url" class="block text-sm font-medium aero-text-secondary mb-1">External Integration / Webhook URL (Optional)</label>
-                    <input type="url" id="webhook_url" placeholder="https://your-ci-server/trigger" class="w-full aero-button border border-blue-300 aero-text-primary p-3 rounded-lg focus:ring-emerald-500 focus:border-emerald-500">
-                </div>
+ <div class="mb-4">
+ <label for="expected_output" class="block text-sm font-medium aero-text-secondary mb-1">Expected Output (Optional)</label>
+ <textarea id="expected_output" rows="3" class="w-full code-area p-3 rounded-lg font-mono text-sm"></textarea>
+ </div>
 
-                <div class="mb-6">
-                    <label for="integration_info" class="block text-sm font-medium aero-text-secondary mb-1">API/Program Integration Details</label>
-                    <p class="text-xs aero-text-muted mb-1">Describe external programs or API calls this test would make.</p>
-                    <textarea id="integration_info" rows="3" class="w-full aero-button border border-blue-300 aero-text-primary p-3 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"></textarea>
-                </div>
+ <div class="mb-4 border-t aero-divider pt-4">
+ <label for="webhook_url" class="block text-sm font-medium aero-text-secondary mb-1">External Integration / Webhook URL (Optional)</label>
+ <input type="url" id="webhook_url" placeholder="https://your-ci-server/trigger" class="w-full aero-button border border-blue-300 aero-text-primary p-3 rounded-lg focus:ring-emerald-500 focus:border-emerald-500">
+ </div>
 
-                <div class="mb-6 border-t aero-divider pt-4">
-                    <div class="flex items-center justify-between mb-3">
-                        <label class="block text-sm font-medium aero-text-secondary">📝 Log File Configuration</label>
-                        <label class="flex items-center cursor-pointer">
-                            <input type="checkbox" id="enable_log_saving" class="mr-2">
-                            <span class="text-sm aero-text-muted">Enable automatic log saving</span>
-                        </label>
-                    </div>
-                    
-                    <div id="log-config-options" class="space-y-3 hidden">
-                        <div>
-                            <label for="log_filename" class="block text-xs aero-text-muted mb-1">Log Filename Pattern</label>
-                            <input type="text" id="log_filename" placeholder="test_log_{suite_name}_{timestamp}" 
-                                value="log_{suite_name}_{timestamp}"
-                                class="w-full aero-button border border-blue-300 aero-text-primary p-2 rounded-lg text-sm">
-                            <p class="text-xs aero-text-muted mt-1">
-                                Available variables: {suite_name}, {timestamp}, {date}, {time}, {status}
-                            </p>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label for="log_format" class="block text-xs aero-text-muted mb-1">Log Format</label>
-                                <select id="log_format" class="w-full aero-button border border-blue-300 aero-text-primary p-2 rounded-lg text-sm">
-                                    <option value="txt">Plain Text (.txt)</option>
-                                    <option value="json">JSON (.json)</option>
-                                    <option value="html">HTML Report (.html)</option>
-                                    <option value="xml">XML (.xml)</option>
-                                    <option value="md">Markdown (.md)</option>
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <label for="log_save_trigger" class="block text-xs aero-text-muted mb-1">Save Trigger</label>
-                                <select id="log_save_trigger" class="w-full aero-button border border-blue-300 aero-text-primary p-2 rounded-lg text-sm">
-                                    <option value="always">After every run</option>
-                                    <option value="failure">Only on failure</option>
-                                    <option value="success">Only on success</option>
-                                    <option value="manual">Manual only</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="text-xs aero-glass-panel p-2 rounded">
-                            <span class="aero-text-muted">💡 Tip:</span> Logs will download automatically based on your trigger setting. 
-                            You can also manually download from the execution modal.
-                        </div>
-                    </div>
-                </div>
+ <div class="mb-6">
+ <label for="integration_info" class="block text-sm font-medium aero-text-secondary mb-1">API/Program Integration Details</label>
+ <p class="text-xs aero-text-muted mb-1">Describe external programs or API calls this test would make.</p>
+ <textarea id="integration_info" rows="3" class="w-full aero-button border border-blue-300 aero-text-primary p-3 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"></textarea>
+ </div>
 
-                <script>
-                    // Toggle log config options
-                    document.getElementById('enable_log_saving').addEventListener('change', function(e) {
-                        document.getElementById('log-config-options').classList.toggle('hidden', !e.target.checked);
-                    });
-                </script>
+ <div class="mb-6 border-t aero-divider pt-4">
+ <div class="flex items-center justify-between mb-3">
+ <label class="block text-sm font-medium aero-text-secondary"> Log File Configuration</label>
+ <label class="flex items-center cursor-pointer">
+ <input type="checkbox" id="enable_log_saving" class="mr-2">
+ <span class="text-sm aero-text-muted">Enable automatic log saving</span>
+ </label>
+ </div>
+ 
+ <div id="log-config-options" class="space-y-3 hidden">
+ <div>
+ <label for="log_filename" class="block text-xs aero-text-muted mb-1">Log Filename Pattern</label>
+ <input type="text" id="log_filename" placeholder="test_log_{suite_name}_{timestamp}" 
+ value="log_{suite_name}_{timestamp}"
+ class="w-full aero-button border border-blue-300 aero-text-primary p-2 rounded-lg text-sm">
+ <p class="text-xs aero-text-muted mt-1">
+ Available variables: {suite_name}, {timestamp}, {date}, {time}, {status}
+ </p>
+ </div>
+ 
+ <div class="grid grid-cols-2 gap-3">
+ <div>
+ <label for="log_format" class="block text-xs aero-text-muted mb-1">Log Format</label>
+ <select id="log_format" class="w-full aero-button border border-blue-300 aero-text-primary p-2 rounded-lg text-sm">
+ <option value="txt">Plain Text (.txt)</option>
+ <option value="json">JSON (.json)</option>
+ <option value="html">HTML Report (.html)</option>
+ <option value="xml">XML (.xml)</option>
+ <option value="md">Markdown (.md)</option>
+ </select>
+ </div>
+ 
+ <div>
+ <label for="log_save_trigger" class="block text-xs aero-text-muted mb-1">Save Trigger</label>
+ <select id="log_save_trigger" class="w-full aero-button border border-blue-300 aero-text-primary p-2 rounded-lg text-sm">
+ <option value="always">After every run</option>
+ <option value="failure">Only on failure</option>
+ <option value="success">Only on success</option>
+ <option value="manual">Manual only</option>
+ </select>
+ </div>
+ </div>
+ 
+ <div class="text-xs aero-glass-panel p-2 rounded">
+ <span class="aero-text-muted"> Tip:</span> Logs will download automatically based on your trigger setting. 
+ You can also manually download from the execution modal.
+ </div>
+ </div>
+ </div>
 
-                <div class="flex justify-end space-x-3">
-                    <button type="button" onclick="closeEditorModal()"
-                        class="bg-gray-600 hover:bg-gray-500 aero-text-primary font-semibold py-2 px-4 rounded-lg transition duration-200">
-                        Cancel
-                    </button>
-                    <button type="submit"
-                        class="bg-emerald-600 hover:bg-emerald-500 aero-text-primary font-semibold py-2 px-4 rounded-lg transition duration-200">
-                        Save Test Suite
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <div id="nocode-builder-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop modal-open">
-        <div class="aero-modal p-0 w-full max-w-6xl h-[90vh] flex flex-col">
-            <header class="p-4 border-b aero-divider flex justify-between items-center flex-shrink-0">
-                <h2 class="text-2xl font-bold aero-text-primary">✨ Visual Test Builder (No-Code)</h2>
-                <div class="flex space-x-3">
-                    <button onclick="closeNoCodeBuilder()" class="aero-button-gray py-2 px-4 rounded-lg">Cancel</button>
-                    <button onclick="generateAndApplyBrowserCode()" class="aero-button-success py-2 px-4 rounded-lg text-xs">Generate Browser-Only Code & Close</button>
-                    <button onclick="generateAndApplyCode()" class="aero-button-info py-2 px-4 rounded-lg text-xs">Generate Universal Robot Code & Close</button>
-                </div>
-            </header>
-            <div class="flex-grow flex min-h-0">
-                <aside class="w-1/4 p-4 border-r aero-divider overflow-y-auto">
-                    <h3 class="text-lg font-semibold aero-text-secondary mb-3">Available Steps</h3>
-                    <div id="nocode-toolbox" class="space-y-2">
-                        </div>
-                </aside>
+ <script>
+ // Toggle log config options
+ document.getElementById('enable_log_saving').addEventListener('change', function(e) {
+ document.getElementById('log-config-options').classList.toggle('hidden', !e.target.checked);
+ });
+ </script>
 
-                <main class="w-1/2 p-4 overflow-y-auto droppable-area">
-                    <h3 class="text-lg font-semibold aero-text-secondary mb-3">Test Steps</h3>
-                    <div id="nocode-canvas">
-                        </div>
-                </main>
+ <div class="flex justify-end space-x-3">
+ <button type="button" onclick="closeEditorModal()"
+ class="bg-gray-600 hover:bg-gray-500 aero-text-primary font-semibold py-2 px-4 rounded-lg transition duration-200">
+ Cancel
+ </button>
+ <button id="Save_Test_Suite0666" type="submit"
+ class="bg-emerald-600 hover:bg-emerald-500 aero-text-primary font-semibold py-2 px-4 rounded-lg transition duration-200">
+ Save Test Suite
+ </button>
+ </div>
+ </form>
+ </div>
+ </div>
+ 
+ <div id="nocode-builder-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop modal-open">
+ <div class="aero-modal p-0 w-full max-w-6xl h-[90vh] flex flex-col">
+ <header class="p-4 border-b aero-divider flex justify-between items-center flex-shrink-0">
+ <h2 class="text-2xl font-bold aero-text-primary"> Visual Test Builder (No-Code)</h2>
+ <div class="flex space-x-3">
+ <button onclick="closeNoCodeBuilder()" class="aero-button-gray py-2 px-4 rounded-lg">Cancel</button>
+ <button onclick="generateAndApplyBrowserCode()" class="aero-button-success py-2 px-4 rounded-lg text-xs">Generate Browser-Only Code & Close</button>
+ <button onclick="generateAndApplyCode()" class="aero-button-info py-2 px-4 rounded-lg text-xs">Generate Universal Robot Code & Close</button>
+ </div>
+ </header>
+ <div class="flex-grow flex min-h-0">
+ <aside class="w-1/4 p-4 border-r aero-divider overflow-y-auto">
+ <h3 class="text-lg font-semibold aero-text-secondary mb-3">Available Steps</h3>
+ <div id="nocode-toolbox" class="space-y-2">
+ </div>
+ </aside>
 
-                <aside class="w-1/4 p-4 border-l aero-divider overflow-y-auto">
-                    <div id="nocode-properties">
-                        </div>
-                </aside>
-            </div>
-        </div>
-    </div>
+ <main class="w-1/2 p-4 overflow-y-auto droppable-area">
+ <h3 class="text-lg font-semibold aero-text-secondary mb-3">Test Steps</h3>
+ <div id="nocode-canvas">
+ </div>
+ </main>
 
-
-    <div id="run-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop"
-         onclick="if (event.target.id === 'run-modal') closeRunModal()">
-        <div class="aero-glass-panel p-6 sm:p-8 aero-modal w-full max-w-4xl max-h-[90vh] overflow-y-auto"
-             onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="run-modal-title" class="text-2xl font-bold aero-text-primary">Run Test Suite</h3>
-                <div id="run-status-indicator" class="text-sm"></div>
-            </div>
-            <div id="run-modal-content" class="aero-modal p-4 rounded-lg text-sm font-mono aero-text-success whitespace-pre-wrap max-h-[600px] overflow-y-auto">
-                </div>
-            <div class="mt-4 flex justify-end space-x-3">
-                <button onclick="downloadCurrentLog()" id="download-log-btn"
-                    class="aero-button-primary aero-text-primary font-semibold py-2 px-4 rounded-lg transition duration-200">
-                    💾 Download Log
-                </button>
-                <button onclick="closeRunModal()"
-                    class="bg-gray-600 hover:bg-gray-500 aero-text-primary font-semibold py-2 px-4 rounded-lg transition duration-200">
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div id="minimize-bar" class="hidden fixed bottom-0 left-0 right-0 h-16 aero-header p-2 flex items-center z-40">
-        <button id="minimize-bar-toggle-left" class="aero-button-gray h-12 w-10 text-xl font-bold rounded-lg flex-shrink-0">«</button>
-        <div id="minimize-bar-items-wrapper" class="flex-1 h-full mx-2 overflow-x-auto overflow-y-hidden">
-            <div id="minimize-bar-items-container" class="flex h-full items-center space-x-2">
-                </div>
-        </div>
-        <button id="minimize-bar-toggle-right" class="aero-button-gray h-12 w-10 text-xl font-bold rounded-lg flex-shrink-0">»</button>
-    </div>
-
-    <div id="hidden-iframes-container" class="hidden"></div>
-
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        
-        // Make Firebase functions available globally
-        window.firebaseModules = {
-            initializeApp,
-            getFirestore,
-            collection,
-            addDoc,
-            updateDoc,
-            deleteDoc,
-            doc,
-            onSnapshot,
-            query,
-            where,
-            getAuth,
-            signInAnonymously,
-            onAuthStateChanged
-        };
-    </script>
+ <aside class="w-1/4 p-4 border-l aero-divider overflow-y-auto">
+ <div id="nocode-properties">
+ </div>
+ </aside>
+ </div>
+ </div>
+ </div>
 
 
-    <script src="script.js"></script>
-    <script src="nocode-builder.js"></script>
-    <script src="visual-web-tester.js"></script>
+ <div id="run-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop"
+ onclick="if (event.target.id === 'run-modal') closeRunModal()">
+ <div class="aero-glass-panel p-6 sm:p-8 aero-modal w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+ onclick="event.stopPropagation()">
+ <div class="flex justify-between items-center mb-4">
+ <h3 id="run-modal-title" class="text-2xl font-bold aero-text-primary">Run Test Suite</h3>
+ <div id="run-status-indicator" class="text-sm"></div>
+ </div>
+ <div id="run-modal-content" class="aero-modal p-4 rounded-lg text-sm font-mono aero-text-success whitespace-pre-wrap max-h-[600px] overflow-y-auto">
+ </div>
+ <div class="mt-4 flex justify-end space-x-3">
+ <button onclick="downloadCurrentLog()" id="download-log-btn"
+ class="aero-button-primary aero-text-primary font-semibold py-2 px-4 rounded-lg transition duration-200">
+ Download Log
+ </button>
+ <button onclick="closeRunModal()"
+ class="bg-gray-600 hover:bg-gray-500 aero-text-primary font-semibold py-2 px-4 rounded-lg transition duration-200">
+ Close
+ </button>
+ </div>
+ </div>
+ </div>
+
+ <div id="minimize-bar" class="hidden fixed bottom-0 left-0 right-0 h-16 aero-header p-2 flex items-center z-40">
+ <button id="minimize-bar-toggle-left" class="aero-button-gray h-12 w-10 text-xl font-bold rounded-lg flex-shrink-0">«</button>
+ <div id="minimize-bar-items-wrapper" class="flex-1 h-full mx-2 overflow-x-auto overflow-y-hidden">
+ <div id="minimize-bar-items-container" class="flex h-full items-center space-x-2">
+ </div>
+ </div>
+ <button id="minimize-bar-toggle-right" class="aero-button-gray h-12 w-10 text-xl font-bold rounded-lg flex-shrink-0">»</button>
+ </div>
+
+ <div id="hidden-iframes-container" class="hidden"></div>
+
+ <script type="module">
+ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+ import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+ import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+ 
+ // Make Firebase functions available globally
+ window.firebaseModules = {
+ initializeApp,
+ getFirestore,
+ collection,
+ addDoc,
+ updateDoc,
+ deleteDoc,
+ doc,
+ onSnapshot,
+ query,
+ where,
+ getAuth,
+ signInAnonymously,
+ onAuthStateChanged
+ };
+ </script>
+
+
+ <script src="monaco-config.js"></script>
+ <script src="script.js"></script>
+ <script src="nocode-builder.js"></script>
+ <script src="visual-web-tester.js"></script>
 </body>
 </html>
