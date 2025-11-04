@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
 // VISUAL WEB TESTER (VWT)
 // A self-contained module for the new
 // no-code web testing environment.

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
  <meta charset="UTF-8">
@@ -18,7 +18,7 @@
  <div id="app" class="max-w-7xl mx-auto flex gap-4">
  <aside id="views-panel" class="w-64 flex-shrink-0 aero-card p-4 rounded-lg" style="max-height: calc(100vh - 4rem); overflow-y: auto;">
  <div class="flex justify-between items-center mb-4">
-<h2 class="text-xl font-bold aero-text-primary">📁 Views</h2>
+<h2 class="text-xl font-bold aero-text-primary">Views</h2>
  <button onclick="openAddViewModal()" 
  class="aero-button-success text-sm py-1 px-3 rounded transition duration-200" 
  title="Add New View">
@@ -81,7 +81,7 @@
  <div class='flex-1 min-w-[200px]'>
  <input type='text' id='suite-search' 
  class='w-full aero-input p-2 rounded-lg' 
- placeholder='🔍 Search test suites...'
+ placeholder='Search test suites...'
  oninput='filterSuites()'>
  </div>
  
@@ -118,7 +118,7 @@
  <!-- Bulk Selection Mode -->
  <button id='bulk-mode-toggle' onclick='toggleBulkMode()' 
  class='aero-button-info px-4 py-2 rounded-lg'>
- ☑️ Bulk Select
+ Bulk Select
  </button>
  </div>
  </div>
@@ -129,16 +129,16 @@
  <span id='selected-count'>0</span> selected
  </span>
  <button onclick='bulkRun()' class='aero-button-primary px-4 py-2 rounded-lg'>
- ▶️ Run Selected
+ Run Selected
  </button>
  <button onclick='bulkDelete()' class='aero-button-danger px-4 py-2 rounded-lg'>
- 🗑️ Delete Selected
+ Delete Selected
  </button>
  <button onclick='bulkExport()' class='aero-button-info px-4 py-2 rounded-lg'>
- 💾 Export Selected
+ Export Selected
  </button>
  <button onclick='bulkAddTag()' class='aero-button-success px-4 py-2 rounded-lg'>
- 🏷️ Add Tag to Selected
+ Add Tag to Selected
  </button>
  </div>
 
@@ -213,19 +213,19 @@
  </div>
  
  <div class="mb-6 p-4 aero-glass-panel border-l-4 border-blue-500">
- <h4 class="font-semibold aero-text-primary mb-3">🆕 NEW: Website Integration Testing</h4>
+ <h4 class="font-semibold aero-text-primary mb-3">NEW: Website Integration Testing</h4>
  <div class="text-sm aero-text-secondary mb-3">
  Test external websites or load your own site files for automated testing!
  </div>
  <div class="text-xs aero-text-muted">
  Perfect for testing tests made through website modules or any other web application<br>
  Upload site files (HTML/CSS/JS) or link to external URLs<br>
- 🤖 Use Robot Framework to interact with forms, buttons, and elements
+ Use Robot Framework to interact with forms, buttons, and elements
  </div>
  </div>
 
  <div id="python-exec-config" class="mb-6 p-4 aero-modal rounded-lg border aero-divider">
- <h4 class="font-semibold aero-text-primary mb-3">🐍 Python Execution</h4>
+ <h4 class="font-semibold aero-text-primary mb-3">Python Execution</h4>
  <div class="text-sm aero-text-muted mb-2">
  <span class="aero-text-success"> Browser-based execution via Pyodide (WebAssembly)</span>
  </div>
@@ -236,7 +236,7 @@
 
  
  <div id="robot-exec-config" class="mb-6 p-4 aero-modal rounded-lg border border-teal-700">
- <h4 class="font-semibold aero-text-primary mb-3">🤖 Robot Framework Execution</h4>
+ <h4 class="font-semibold aero-text-primary mb-3">Robot Framework Execution</h4>
  <p class="text-xs aero-text-muted mb-3">Choose how to execute Robot Framework tests:</p>
  
  <div class="space-y-2 mb-3">
@@ -622,12 +622,12 @@
  <option value="java">Java</option>
  <option value="csharp">C#</option>
  <option value="robot">Robot Framework</option>
- <option value="website">Website Integration Testing 🆕</option>
+ <option value="website">Website Integration Testing</option>
  </select>
  </div>
 
  <div id="website-testing-config" class="hidden mb-6 p-4 aero-glass-panel border-l-4 border-blue-500 rounded-lg">
- <h4 class="font-semibold aero-text-primary mb-3">🆕 Website Integration Testing</h4>
+ <h4 class="font-semibold aero-text-primary mb-3">Website Integration Testing</h4>
  
  <div class="mb-4">
  <label class="block text-sm font-medium aero-text-secondary mb-2">Website Source</label>
@@ -882,6 +882,46 @@
 
  <div id="hidden-iframes-container" class="hidden"></div>
 
+ <div id='version-history-modal' class='hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop' onclick='if(event.target.id==="version-history-modal") closeVersionHistory()'>
+  <div class='aero-modal p-6 w-full max-w-4xl max-h-[90vh] flex flex-col' onclick='event.stopPropagation()'>
+    <div class='flex justify-between items-center mb-4'>
+      <h3 class='text-2xl font-bold aero-text-primary'>Version History: <span id='version-history-suite-name'></span></h3>
+      <button onclick='closeVersionHistory()' class='aero-button-gray px-4 py-2 rounded-lg'>Close</button>
+    </div>
+    
+    <div class='flex-1 overflow-hidden flex gap-4'>
+      <div class='w-1/3 overflow-y-auto aero-glass-panel p-3 rounded-lg'>
+        <h4 class='font-semibold mb-2 aero-text-secondary'>Versions</h4>
+        <div id='versions-list' class='space-y-2'>
+        </div>
+      </div>
+      
+      <div class='w-2/3 overflow-y-auto aero-glass-panel p-4 rounded-lg'>
+        <div class='flex justify-between items-center mb-3'>
+          <h4 class='font-semibold aero-text-secondary'>Preview</h4>
+          <div class='flex gap-2'>
+            <button id='compare-btn' onclick='toggleComparisonMode()' 
+              class='aero-button-info text-sm py-1 px-3 rounded' disabled>
+              Compare
+            </button>
+            <button onclick='exportVersionHistory()' 
+              class='aero-button-gray text-sm py-1 px-3 rounded'>
+              Export
+            </button>
+            <button id='restore-btn' onclick='restoreSelectedVersion()' 
+              class='aero-button-success text-sm py-1 px-3 rounded' disabled>
+              Restore Version
+            </button>
+          </div>
+        </div>
+        <div id='version-preview' class='aero-input p-4 rounded-lg min-h-[400px] font-mono text-sm whitespace-pre-wrap'>
+          Select a version to preview
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
  <script type="module">
  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
  import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
@@ -908,6 +948,7 @@
 
  <script src="monaco-config.js"></script>
  <script src="script.js"></script>
+ <script src="version-control.js"></script>
  <script src="nocode-builder.js"></script>
  <script src="visual-web-tester.js"></script>
 </body>

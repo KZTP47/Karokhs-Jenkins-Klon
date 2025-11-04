@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
  // EXECUTION ENGINE
  // ============================================
  
@@ -715,6 +715,14 @@ except Exception as e:
  const suites = await this.getAllSuites();
  const index = suites.findIndex(s => s.id === id);
  if (index !== -1) {
+ // Save version before updating
+ if (window.versionControl) {
+ window.versionControl.saveVersion(
+ id,
+ suites[index],
+ 'Auto-save before update'
+ );
+ }
  // Set dateModified on update
  updates.dateModified = new Date().toISOString();
  suites[index] = { ...suites[index], ...updates };
@@ -811,6 +819,17 @@ except Exception as e:
  }
 
  async updateSuite(id, updates) {
+ // Save version before updating
+ if (window.versionControl && window.testSuites) {
+ const existingSuite = window.testSuites.find(s => s.id === id);
+ if (existingSuite) {
+ window.versionControl.saveVersion(
+ id,
+ existingSuite,
+ 'Auto-save before update'
+ );
+ }
+ }
  const { doc, updateDoc } = window.firebaseModules;
  const docRef = doc(this.db, 'test_suites', id);
  await updateDoc(docRef, updates);
@@ -879,6 +898,17 @@ except Exception as e:
  }
 
  async updateSuite(id, updates) {
+ // Save version before updating
+ if (window.versionControl && window.testSuites) {
+ const existingSuite = window.testSuites.find(s => s.id === id);
+ if (existingSuite) {
+ window.versionControl.saveVersion(
+ id,
+ existingSuite,
+ 'Auto-save before update'
+ );
+ }
+ }
  await this._fetch('PUT', `/${id}`, updates);
  }
 
@@ -1125,6 +1155,7 @@ except Exception as e:
  // ============================================
  
  let testSuites = [];
+ window.testSuites = testSuites;
  let editingSuiteId = null;
  
  // ============================================
@@ -1166,7 +1197,7 @@ except Exception as e:
  }`;
  allViewsBtn.innerHTML = `
  <div class="flex justify-between items-center">
- <span class="font-semibold">📁 All Views</span>
+ <span class="font-semibold">All Views</span>
  <span class="text-xs aero-badge-info">${testSuites.length}</span>
  </div>
  `;
@@ -1399,6 +1430,7 @@ except Exception as e:
 
  function renderTestSuites(suites) {
  testSuites = suites;
+ window.testSuites = suites;
  
  // Filter by current view first
  let filteredSuites = suites;
@@ -1475,7 +1507,7 @@ except Exception as e:
  const isVisualWebTest = isWebsite && suite.website_method === 'upload';
  
  const languageDisplay = isVisualWebTest ? '✨ VISUAL WEB' : 
- isWebsite ? '🌐 WEBSITE (URL)' : 
+ isWebsite ? 'WEBSITE (URL)' : 
  suite.language.toUpperCase();
  
  const cardBorderColor = isVisualWebTest ? 'border-purple-500' : 'border-blue-500';
@@ -1513,15 +1545,15 @@ except Exception as e:
  <button onclick='toggleFavorite(event, "${suite.id}")' 
  class='text-2xl hover:scale-110 transition-transform'
  title='${suite.isFavorite ? "Remove from favorites" : "Add to favorites"}'>
- ${suite.isFavorite ? '⭐' : '☆'}
+ ${suite.isFavorite ? '★' : '☆'}
  </button>
  </div>
  <p class="aero-text-muted text-sm">${escapeHtml(suite.description || 'No description')}</p>
  ${isWebsite && suite.website_method === 'url' ? `
- <p class="text-xs aero-text-muted mt-1">🔗 ${escapeHtml(suite.website_url || 'No URL')}</p>
+ <p class="text-xs aero-text-muted mt-1">🔗— ${escapeHtml(suite.website_url || 'No URL')}</p>
  ` : ''}
  ${isVisualWebTest ? `
- <p class="text-xs aero-text-success mt-1">📁 Uploaded site files</p>
+ <p class="text-xs aero-text-success mt-1">Uploaded site files</p>
  ` : ''}
  ${tagsDisplay}
  </div>
@@ -1544,13 +1576,18 @@ except Exception as e:
  ` : ''}
  
  <div class="flex justify-end space-x-2" onclick="event.stopPropagation()">
+ <button onclick="openVersionHistory(event, '${suite.id}')" 
+  class="aero-button-info text-sm font-semibold py-1 px-3 rounded transition"
+  title="View Version History">
+  History
+ </button>
  <button onclick="duplicateSuite('${suite.id}')" 
  class="aero-button-purple text-sm font-semibold py-1 px-3 rounded transition">
  Duplicate
  </button>
  <button onclick="runTestSuite('${suite.id}')" 
  class="aero-button-success text-sm font-semibold py-1 px-3 rounded transition">
- ▶ Run
+ >>Run
  </button>
  <button onclick="editSuite('${suite.id}')" 
  class="aero-button-primary text-sm font-semibold py-1 px-3 rounded transition">
@@ -1879,6 +1916,15 @@ except Exception as e:
  
  try {
  if (editingSuiteId) {
+ // Save version before updating existing suite
+ const existingSuite = testSuites.find(s => s.id === editingSuiteId);
+ if (existingSuite && window.versionControl) {
+ window.versionControl.saveVersion(
+ editingSuiteId,
+ existingSuite,
+ 'Manual save from editor'
+ );
+ }
  await currentStorage.updateSuite(editingSuiteId, suite);
  showMessage("Test suite updated successfully", 'success');
  } else {
@@ -1933,8 +1979,20 @@ except Exception as e:
  return;
  }
  
+ // Ask if user wants to keep version history
+ const keepHistory = confirm(
+ 'Do you want to keep the version history for this suite?\n' +
+ '(You can restore it later from the version archive)'
+ );
+ 
  try {
  await currentStorage.deleteSuite(suiteId);
+ 
+ // Delete version history if user chose not to keep it
+ if (!keepHistory && window.versionControl) {
+ window.versionControl.deleteVersionHistory(suiteId);
+ }
+ 
  showMessage("Test suite deleted", 'success');
  } catch (error) {
  console.error("Delete error:", error);
@@ -2139,7 +2197,7 @@ except Exception as e:
 </head>
 <body>
  <div class="header">
- <h1>📁 Test Execution Log</h1>
+ <h1>Test Execution Log</h1>
  <div class="meta">
  <strong>Suite:</strong> ${suite.name}<br>
  <strong>Language:</strong> ${suite.language}<br>
@@ -2610,10 +2668,10 @@ Test Website Navigation
  
  if (content.classList.contains('hidden')) {
  content.classList.remove('hidden');
- icon.textContent = '▼';
+ icon.textContent = '\/';
  } else {
  content.classList.add('hidden');
- icon.textContent = '▶';
+ icon.textContent = '>>';
  }
  }
  
@@ -2982,7 +3040,7 @@ Test Website Navigation
  
  const btn = document.getElementById('bulk-mode-toggle');
  if (btn) {
- btn.textContent = bulkModeActive ? '✖ Cancel' : '☑️ Bulk Select';
+ btn.textContent = bulkModeActive ? 'Cancel' : 'Bulk Select';
  btn.className = bulkModeActive ? 'aero-button-danger px-4 py-2 rounded-lg' : 'aero-button-info px-4 py-2 rounded-lg';
  }
  
