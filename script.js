@@ -1,4 +1,4 @@
-﻿// ============================================
+// ============================================
  // EXECUTION ENGINE
  // ============================================
  
@@ -1013,12 +1013,14 @@ except Exception as e:
  document.getElementById('storage-info').textContent = "Connecting to storage...";
  await currentStorage.initialize();
  await currentStorage.subscribeToChanges(renderTestSuites);
+    window.currentStorage = currentStorage;
  document.getElementById('storage-info').textContent = currentStorage.getStatusMessage();
  showMessage("Storage connected successfully", 'success');
  
  } catch (error) {
  console.error("Storage connection error:", error);
  currentStorage = null;
+    window.currentStorage = null;
  throw error;
  }
  }
@@ -2480,86 +2482,135 @@ ${logText}
  // ============================================
  
  function exportToJSON() {
- const data = {
- exported_at: new Date().toISOString(),
- storage_type: storageConfig.type,
- execution_mode: executionConfig.mode,
- views: views, // Include views in export
- test_suites: testSuites
- };
- 
- const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
- const url = URL.createObjectURL(blob);
- const a = document.createElement('a');
- a.href = url;
- a.download = `pipeline_suites_export_${new Date().toISOString().split('T')[0]}.json`;
- a.click();
- URL.revokeObjectURL(url);
- 
- showMessage("Export completed", 'success');
+   // Collect all version histories from localStorage
+   const versionHistories = {};
+   
+   if (testSuites && Array.isArray(testSuites)) {
+     testSuites.forEach(suite => {
+       if (suite.id && window.versionControl) {
+         const versions = window.versionControl.getVersionHistory(suite.id);
+         if (versions && versions.length > 0) {
+           versionHistories[suite.id] = versions;
+         }
+       }
+     });
+   }
+   
+   const data = {
+     exported_at: new Date().toISOString(),
+     storage_type: storageConfig.type,
+     execution_mode: executionConfig.mode,
+     views: views,
+     test_suites: testSuites,
+     version_histories: versionHistories,
+     export_version: '2.0'
+   };
+   
+   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+   const url = URL.createObjectURL(blob);
+   const a = document.createElement('a');
+   a.href = url;
+   a.download = `pipeline_suites_export_${new Date().toISOString().split('T')[0]}.json`;
+   a.click();
+   URL.revokeObjectURL(url);
+   
+   const versionCount = Object.keys(versionHistories).reduce((sum, key) => sum + versionHistories[key].length, 0);
+   showMessage(`Export completed: ${testSuites.length} suite(s), ${versionCount} version(s)`, 'success');
  }
 
  function importFromJSON(event) {
- if (!currentStorage) {
- showMessage("Please configure storage first", 'error');
- event.target.value = null;
- return;
- }
- 
- const file = event.target.files[0];
- if (!file) return;
- 
- const reader = new FileReader();
- reader.onload = async (e) => {
- try {
- const content = JSON.parse(e.target.result);
- 
- // Import views if they exist
- if (content.views && Array.isArray(content.views)) {
- views = content.views;
- saveViewsToStorage();
- renderViews();
- showMessage('Imported ' + views.length + ' view(s)', 'info');
- }
- 
- let suitesToImport = [];
- 
- if (content.test_suites && Array.isArray(content.test_suites)) {
- suitesToImport = content.test_suites;
- } else if (Array.isArray(content)) {
- suitesToImport = content;
- } else {
- showMessage("Invalid JSON format", 'error');
- return;
- }
- 
- if (suitesToImport.length === 0) {
- showMessage("No test suites found in file", 'info');
- return;
- }
- 
- let importCount = 0;
- for (const suite of suitesToImport) {
- try {
- const { id, ...newSuite } = suite;
- // Preserve view_id if it exists
- if (!newSuite.view_id) newSuite.view_id = null;
- await currentStorage.saveSuite(newSuite);
- importCount++;
- } catch (error) {
- console.error("Failed to import suite:", error);
- }
- }
- 
- showMessage(`Imported ${importCount} test suite(s)`, 'success');
- 
- } catch (error) {
- console.error("Import error:", error);
- showMessage("Failed to import: " + error.message, 'error');
- }
- };
- reader.readAsText(file);
- event.target.value = null;
+   if (!currentStorage) {
+     showMessage("Please configure storage first", 'error');
+     event.target.value = null;
+     return;
+   }
+   
+   const file = event.target.files[0];
+   if (!file) return;
+   
+   const reader = new FileReader();
+   reader.onload = async (e) => {
+     try {
+       const content = JSON.parse(e.target.result);
+       
+       // Import views if they exist
+       if (content.views && Array.isArray(content.views)) {
+         views = content.views;
+         saveViewsToStorage();
+         renderViews();
+         showMessage('Imported ' + views.length + ' view(s)', 'info');
+       }
+       
+       let suitesToImport = [];
+       
+       if (content.test_suites && Array.isArray(content.test_suites)) {
+         suitesToImport = content.test_suites;
+       } else if (Array.isArray(content)) {
+         suitesToImport = content;
+       } else {
+         showMessage("Invalid JSON format", 'error');
+         return;
+       }
+       
+       if (suitesToImport.length === 0) {
+         showMessage("No test suites found in file", 'info');
+         return;
+       }
+       
+       // Map to track old ID to new ID
+       const idMapping = {};
+       
+       let importCount = 0;
+       for (const suite of suitesToImport) {
+         try {
+           const oldId = suite.id;
+           const { id, ...newSuite } = suite;
+           // Preserve view_id if it exists
+           if (!newSuite.view_id) newSuite.view_id = null;
+           const newId = await currentStorage.saveSuite(newSuite);
+           
+           // Track ID mapping for version histories
+           if (oldId && newId) {
+             idMapping[oldId] = newId;
+           }
+           
+           importCount++;
+         } catch (error) {
+           console.error("Failed to import suite:", error);
+         }
+       }
+       
+       // Import version histories if they exist
+       let versionCount = 0;
+       if (content.version_histories && typeof content.version_histories === 'object' && window.versionControl) {
+         for (const [oldSuiteId, versions] of Object.entries(content.version_histories)) {
+           const newSuiteId = idMapping[oldSuiteId];
+           
+           if (newSuiteId && Array.isArray(versions) && versions.length > 0) {
+             try {
+               // Store version history with new suite ID
+               localStorage.setItem(`suite_versions_${newSuiteId}`, JSON.stringify(versions));
+               versionCount += versions.length;
+             } catch (error) {
+               console.error(`Failed to import version history for suite ${oldSuiteId}:`, error);
+             }
+           }
+         }
+       }
+       
+       if (versionCount > 0) {
+         showMessage(`Imported ${importCount} suite(s) and ${versionCount} version(s)`, 'success');
+       } else {
+         showMessage(`Imported ${importCount} test suite(s)`, 'success');
+       }
+       
+     } catch (error) {
+       console.error("Import error:", error);
+       showMessage("Failed to import: " + error.message, 'error');
+     }
+   };
+   reader.readAsText(file);
+   event.target.value = null;
  }
 
  // ============================================

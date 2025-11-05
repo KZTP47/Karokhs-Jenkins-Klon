@@ -1,4 +1,4 @@
-﻿// ============================================
+// ============================================
 // VERSION CONTROL SYSTEM
 // ============================================
 
@@ -84,12 +84,14 @@ window.versionControl = new VersionControl();
 let currentViewingSuiteId = null;
 let selectedVersionId = null;
 let comparisonVersionIds = [];
+let isComparisonMode = false;
 
 function openVersionHistory(event, suiteId) {
   event?.stopPropagation();
   currentViewingSuiteId = suiteId;
   selectedVersionId = null;
   comparisonVersionIds = [];
+  isComparisonMode = false;
   
   // Safely get suite name
   let suiteName = 'Unknown';
@@ -120,7 +122,8 @@ function openVersionHistory(event, suiteId) {
   
   const compareBtn = document.getElementById('compare-btn');
   if (compareBtn) {
-    compareBtn.disabled = true;
+    compareBtn.disabled = false;
+    compareBtn.textContent = 'Compare';
   }
   
   const modal = document.getElementById('version-history-modal');
@@ -137,6 +140,7 @@ function closeVersionHistory() {
   currentViewingSuiteId = null;
   selectedVersionId = null;
   comparisonVersionIds = [];
+  isComparisonMode = false;
 }
 
 function renderVersionsList(versions) {
@@ -178,7 +182,7 @@ function renderVersionsList(versions) {
 function selectVersion(versionId) {
   const versions = window.versionControl.getVersionHistory(currentViewingSuiteId);
   
-  if (comparisonVersionIds.length > 0) {
+  if (isComparisonMode) {
     if (comparisonVersionIds.includes(versionId)) {
       comparisonVersionIds = comparisonVersionIds.filter(id => id !== versionId);
     } else if (comparisonVersionIds.length < 2) {
@@ -189,7 +193,8 @@ function selectVersion(versionId) {
     
     const compareBtn = document.getElementById('compare-btn');
     if (compareBtn) {
-      compareBtn.disabled = comparisonVersionIds.length !== 2;
+      compareBtn.disabled = false;
+      compareBtn.textContent = 'Cancel Comparison';
     }
     
     if (comparisonVersionIds.length === 2) {
@@ -245,12 +250,23 @@ function selectVersion(versionId) {
       restoreBtn.disabled = false;
     }
     
+    const compareBtn = document.getElementById('compare-btn');
+    if (compareBtn) {
+      compareBtn.disabled = false;
+      compareBtn.textContent = 'Compare';
+    }
+    
     renderVersionsList(versions);
   }
 }
 
-function restoreSelectedVersion() {
-  if (!selectedVersionId || !currentViewingSuiteId) return;
+async function restoreSelectedVersion() {
+  if (!selectedVersionId || !currentViewingSuiteId) {
+    if (window.showMessage) {
+      window.showMessage('Please select a version to restore', 'warning');
+    }
+    return;
+  }
   
   if (!confirm('Are you sure you want to restore this version? Current version will be saved in history.')) {
     return;
@@ -258,7 +274,14 @@ function restoreSelectedVersion() {
   
   const restoredSuite = window.versionControl.restoreVersion(currentViewingSuiteId, selectedVersionId);
   
-  if (restoredSuite && window.testSuites && window.currentStorage) {
+  if (!restoredSuite) {
+    if (window.showMessage) {
+      window.showMessage('Failed to restore version - version not found', 'error');
+    }
+    return;
+  }
+  
+  if (window.testSuites && window.currentStorage) {
     const currentSuite = window.testSuites.find(s => s.id === currentViewingSuiteId);
     if (currentSuite) {
       window.versionControl.saveVersion(
@@ -268,25 +291,45 @@ function restoreSelectedVersion() {
       );
     }
     
-    window.currentStorage.updateSuite(currentViewingSuiteId, restoredSuite);
-    
-    closeVersionHistory();
-    
+    try {
+      await window.currentStorage.updateSuite(currentViewingSuiteId, restoredSuite);
+      
+      const index = window.testSuites.findIndex(s => s.id === currentViewingSuiteId);
+      if (index !== -1) {
+        window.testSuites[index] = { ...window.testSuites[index], ...restoredSuite };
+      }
+      
+      closeVersionHistory();
+      
+      if (window.showMessage) {
+        window.showMessage('Version restored successfully', 'success');
+      }
+      
+      if (typeof renderTestSuites === 'function') {
+        renderTestSuites(window.testSuites);
+      }
+    } catch (error) {
+      console.error('Error restoring version:', error);
+      if (window.showMessage) {
+        window.showMessage('Failed to restore version: ' + error.message, 'error');
+      }
+    }
+  } else {
     if (window.showMessage) {
-      window.showMessage('Version restored successfully', 'success');
+      window.showMessage('Failed to restore version - storage not available', 'error');
     }
   }
 }
 
 function toggleComparisonMode() {
-  const inComparisonMode = comparisonVersionIds.length > 0;
   const btn = document.getElementById('compare-btn');
   if (!btn) return;
   
-  if (inComparisonMode) {
+  if (isComparisonMode) {
+    isComparisonMode = false;
     comparisonVersionIds = [];
     selectedVersionId = null;
-    btn.disabled = true;
+    btn.disabled = false;
     btn.textContent = 'Compare';
     const versions = window.versionControl.getVersionHistory(currentViewingSuiteId);
     renderVersionsList(versions);
@@ -295,6 +338,8 @@ function toggleComparisonMode() {
       preview.textContent = 'Select a version to preview';
     }
   } else {
+    isComparisonMode = true;
+    comparisonVersionIds = [];
     selectedVersionId = null;
     const restoreBtn = document.getElementById('restore-btn');
     if (restoreBtn) {
@@ -309,7 +354,10 @@ function toggleComparisonMode() {
         </div>
       `;
     }
+    btn.disabled = false;
     btn.textContent = 'Cancel Comparison';
+    const versions = window.versionControl.getVersionHistory(currentViewingSuiteId);
+    renderVersionsList(versions);
     if (window.showMessage) {
       window.showMessage('Select 2 versions to compare', 'info');
     }

@@ -922,6 +922,10 @@
   </div>
 </div>
 
+
+
+
+
  <script type="module">
  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
  import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
@@ -949,6 +953,9 @@
  <script src="monaco-config.js"></script>
  <script src="script.js"></script>
  <script src="version-control.js"></script>
+ <!-- la till denna med syftet att ha IndexedDB. Purpose; Larger storage, to trancend localstorage limit of ca 10mb. Nu; ca 500mb-1GB local storage som funkar offline 4ever -->
+<script src="indexeddb-version-storage.js"></script>
+<!-- allt nedan; det som fanns sen innan -->
  <script src="nocode-builder.js"></script>
  <script src="visual-web-tester.js"></script>
 </body>
