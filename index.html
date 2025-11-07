@@ -47,6 +47,12 @@
  class="aero-button-purple py-2 px-4 rounded-lg shadow-lg transition duration-200">
  Storage Settings
  </button>
+ <!-- 👇 Ny knapp för unit tester 👇 -->
+<button id="openUnitTestingCenter" onclick="openUnitTestingModal()"
+  class="aero-button-info py-2 px-4 rounded-lg shadow-lg transition duration-200">
+  🧪 Unit Testing Center
+</button>
+<!-- 👆 Ny knapp för unit tester 👆 -->
  <button id="openAddSuiteModal" onclick="openAddSuiteModal()"
  class="aero-button-success py-2 px-4 rounded-lg shadow-lg transition duration-200">
  + Add New Test Suite
@@ -923,11 +929,142 @@
 </div>
 
 
+<!-- 👇 NYTT. till för unit tests 👇 -->
+  <!-- ============================================
+     UNIT TESTING MODAL
+     ============================================ -->
+<div id="unit-testing-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop">
+  <div class="aero-modal p-0 w-full max-w-7xl h-[95vh] flex flex-col">
+    <header class="p-4 border-b aero-divider flex justify-between items-center flex-shrink-0">
+      <h2 class="text-2xl font-bold aero-text-primary">Unit Testing Center</h2>
+      <div class="flex gap-3">
+	    <button onclick="createNewUnitTest()" class="w-full aero-button-success py-2 px-4 rounded-lg">+ New Unit Test</button>
+        <button onclick="importUnitTestsFromFile()" class="aero-button-info py-2 px-4 rounded-lg">📥 Import Tests</button>
+        <button onclick="exportUnitTests()" class="aero-button-gray py-2 px-4 rounded-lg">📤 Export Tests</button>
+        <button onclick="closeUnitTestingModal()" class="aero-button-danger py-2 px-4 rounded-lg">✕ Close</button>
+      </div>
+    </header>
+    <div class="flex-1 flex overflow-hidden">
+      <aside class="w-64 border-r aero-divider p-4 overflow-y-auto aero-glass-panel">
+        <h3 class="text-lg font-semibold aero-text-secondary mb-3">Test Suites</h3>
+        <div id="unit-test-suites-list" class="space-y-2"></div>
+        <button onclick="createNewUnitTest()" class="w-full aero-button-success py-2 px-4 rounded-lg mt-4">+ New Unit Test</button>
+      </aside>
+      <main class="flex-1 p-4 overflow-y-auto">
+        <div class="mb-4 flex justify-between items-center">
+          <h3 class="text-xl font-semibold aero-text-primary" id="unit-test-section-title">All Unit Tests</h3>
+          <button onclick="runAllVisibleUnitTests()" class="aero-button-primary py-2 px-4 rounded-lg">▶ Run All Tests</button>
+        </div>
+        <div class="mb-4 p-3 aero-glass-panel flex gap-3 flex-wrap">
+          <input type="text" id="unit-test-search" class="flex-1 min-w-[200px] aero-input p-2 rounded-lg" placeholder="Search unit tests..." oninput="filterUnitTests()">
+          <select id="unit-test-status-filter" class="aero-button p-2 rounded-lg" onchange="filterUnitTests()">
+            <option value="">All Status</option>
+            <option value="PASS">Passed</option>
+            <option value="FAIL">Failed</option>
+            <option value="NOT_RUN">Not Run</option>
+            <option value="SKIPPED">Skipped</option>
+          </select>
+          <select id="unit-test-framework-filter" class="aero-button p-2 rounded-lg" onchange="filterUnitTests()">
+            <option value="">All Frameworks</option>
+            <option value="pytest">pytest</option>
+            <option value="unittest">unittest</option>
+            <option value="jest">Jest</option>
+            <option value="junit">JUnit</option>
+            <option value="nunit">NUnit</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div id="unit-tests-list" class="space-y-3"></div>
+      </main>
+    </div>
+    <footer class="p-4 border-t aero-divider aero-glass-panel flex-shrink-0">
+      <div id="unit-test-statistics"></div>
+    </footer>
+  </div>
+</div>
 
+<div id="unit-test-editor-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center aero-modal-backdrop">
+  <div class="aero-modal p-0 w-full max-w-6xl h-[95vh] flex flex-col">
+    <header class="p-4 border-b aero-divider flex justify-between items-center flex-shrink-0">
+      <h2 class="text-2xl font-bold aero-text-primary" id="unit-test-editor-title">Create Unit Test</h2>
+      <button onclick="closeUnitTestEditor()" class="aero-button-danger py-2 px-4 rounded-lg">✕ Close</button>
+    </header>
+    <div class="flex-1 overflow-y-auto p-6">
+      <form id="unit-test-form" onsubmit="event.preventDefault(); saveUnitTestFromForm();">
+        <input type="hidden" id="unit-test-id">
+        <div class="mb-6 p-4 aero-glass-panel rounded-lg">
+          <h3 class="text-lg font-semibold aero-text-secondary mb-4">Basic Information</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium aero-text-secondary mb-2">Test Name <span class="text-red-500">*</span></label>
+              <input type="text" id="unit-test-name" required class="w-full aero-input p-2 rounded-lg" placeholder="e.g., Test User Login">
+            </div>
+            <div>
+              <label class="block text-sm font-medium aero-text-secondary mb-2">Test Framework</label>
+              <select id="unit-test-framework" class="w-full aero-button p-2 rounded-lg">
+                <option value="custom">Custom / Generic</option>
+                <option value="pytest">pytest</option>
+                <option value="unittest">unittest</option>
+                <option value="jest">Jest</option>
+                <option value="junit">JUnit</option>
+                <option value="nunit">NUnit</option>
+              </select>
+            </div>
+          </div>
+          <div class="mt-4">
+            <label class="block text-sm font-medium aero-text-secondary mb-2">Description</label>
+            <textarea id="unit-test-description" rows="2" class="w-full aero-input p-2 rounded-lg" placeholder="What does this test validate?"></textarea>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+              <label class="block text-sm font-medium aero-text-secondary mb-2">Link to Test Suite</label>
+              <select id="unit-test-suite" class="w-full aero-button p-2 rounded-lg">
+                <option value="">None (Standalone)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium aero-text-secondary mb-2">Tags (comma-separated)</label>
+              <input type="text" id="unit-test-tags-input" class="w-full aero-input p-2 rounded-lg" placeholder="e.g., unit, integration, smoke">
+            </div>
+          </div>
+        </div>
+        <div class="mb-6">
+          <div class="mb-4 p-4 aero-glass-panel rounded-lg">
+            <h3 class="text-lg font-semibold aero-text-secondary mb-2">Setup Code (Optional)</h3>
+            <p class="text-sm aero-text-muted mb-3">Code to run before the test (fixtures, initialization)</p>
+            <div id="unit-test-setup-editor" style="height: 150px; border: 1px solid #B8D4E8; border-radius: 4px;"></div>
+          </div>
+          <div class="mb-4 p-4 aero-glass-panel rounded-lg">
+            <h3 class="text-lg font-semibold aero-text-secondary mb-2">Test Code <span class="text-red-500">*</span></h3>
+            <p class="text-sm aero-text-muted mb-3">The actual test code with assertions</p>
+            <div id="unit-test-code-editor" style="height: 250px; border: 1px solid #B8D4E8; border-radius: 4px;"></div>
+          </div>
+          <div class="mb-4 p-4 aero-glass-panel rounded-lg">
+            <h3 class="text-lg font-semibold aero-text-secondary mb-2">Teardown Code (Optional)</h3>
+            <p class="text-sm aero-text-muted mb-3">Cleanup code to run after the test</p>
+            <div id="unit-test-teardown-editor" style="height: 150px; border: 1px solid #B8D4E8; border-radius: 4px;"></div>
+          </div>
+        </div>
+        <div class="mb-6 p-4 aero-glass-panel rounded-lg">
+          <h3 class="text-lg font-semibold aero-text-secondary mb-2">Expected Result (Optional)</h3>
+          <p class="text-sm aero-text-muted mb-3">Describe what should happen when this test passes</p>
+          <textarea id="unit-test-expected" rows="3" class="w-full aero-input p-2 rounded-lg" placeholder="e.g., User should be redirected to dashboard with success message"></textarea>
+        </div>
+      </form>
+    </div>
+    <footer class="p-4 border-t aero-divider flex justify-end gap-3 flex-shrink-0">
+      <button type="button" onclick="closeUnitTestEditor()" class="aero-button-gray py-2 px-4 rounded-lg">Cancel</button>
+      <button type="button" onclick="saveUnitTestFromForm()" class="aero-button-success py-2 px-4 rounded-lg">💾 Save Unit Test</button>
+    </footer>
+  </div>
+</div>
 
+<!-- slut -->
 
- <script type="module">
- import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+<!-- 👇 NYTT. till för unit tests 👇 -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+
  import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
  import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
  
@@ -958,5 +1095,6 @@
 <!-- allt nedan; det som fanns sen innan -->
  <script src="nocode-builder.js"></script>
  <script src="visual-web-tester.js"></script>
+ <script src="unit-testing.js"></script>  <!-- 👈 till för att kunna använda den nya knappen för Unit tester -->
 </body>
 </html>

@@ -464,3 +464,38 @@ body {
     background: linear-gradient(180deg, #E57373 0%, #EF5350 50%, #F44336 100%);
     border-color: #E53935;
 }
+
+
+/* ============================================
+   UNIT TESTING SYSTEM STYLES
+   ============================================ */
+
+#unit-test-setup-editor,
+#unit-test-code-editor,
+#unit-test-teardown-editor {
+    background: #FFFFFF;
+    border: 1px solid #B8D4E8;
+    border-radius: 4px;
+}
+
+.unit-test-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.unit-test-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 102, 204, 0.2);
+}
+
+.suite-unit-test-count {
+    background: linear-gradient(135deg, #4CC2FF 0%, #2196F3 100%);
+    color: white;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
+}
