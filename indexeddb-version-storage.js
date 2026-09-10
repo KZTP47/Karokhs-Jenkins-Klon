@@ -23,7 +23,7 @@ class IndexedDBVersionStorage {
 
       request.onsuccess = () => {
         this.db = request.result;
-        console.log('✅ IndexedDB initialized for version storage');
+        console.log(' IndexedDB initialized for version storage');
         resolve();
       };
 
@@ -34,7 +34,7 @@ class IndexedDBVersionStorage {
         if (!db.objectStoreNames.contains(this.storeName)) {
           const objectStore = db.createObjectStore(this.storeName, { keyPath: 'suiteId' });
           objectStore.createIndex('suiteId', 'suiteId', { unique: true });
-          console.log('📦 Created IndexedDB object store for versions');
+          console.log('STORAGE: Created IndexedDB object store for versions');
         }
       };
     });
@@ -148,7 +148,7 @@ class IndexedDBVersionStorage {
       }
     }
     
-    console.log(`✅ Migrated ${migrated} version histories to IndexedDB`);
+    console.log(`DONE: Migrated ${migrated} version histories to IndexedDB`);
     return migrated;
   }
 }
@@ -348,7 +348,7 @@ class VersionControlWithIndexedDB {
   const success = await window.indexedDBVersionControl.initialize();
   
   if (success) {
-    console.log('✅ IndexedDB ready! You now have unlimited version storage.');
+    console.log('READY: IndexedDB ready! You now have unlimited version storage.');
     
     // Show storage info
     const info = await window.indexedDBVersionControl.getStorageInfo();
@@ -361,7 +361,7 @@ class VersionControlWithIndexedDB {
       );
     }
   } else {
-    console.log('⚠️ Using localStorage fallback');
+    console.log('WARNING: Using localStorage fallback');
   }
 })();
 
