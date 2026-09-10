@@ -342,7 +342,7 @@ class VersionControlWithIndexedDB {
 
 // Initialize on page load
 (async function() {
-  console.log('🚀 Initializing IndexedDB version control...');
+  console.log(' Initializing IndexedDB version control...');
   
   window.indexedDBVersionControl = new VersionControlWithIndexedDB();
   const success = await window.indexedDBVersionControl.initialize();
@@ -352,7 +352,7 @@ class VersionControlWithIndexedDB {
     
     // Show storage info
     const info = await window.indexedDBVersionControl.getStorageInfo();
-    console.log('📊 Storage Info:', info);
+    console.log(' Storage Info:', info);
     
     if (window.showMessage) {
       window.showMessage(
