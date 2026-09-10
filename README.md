@@ -1,2 +1,2 @@
 # Karokhs-Jenkins-Klon
-En egen CI/CD website för automatiserade tester i antingen Python, C#, Java, eller extern språk
+En web-app för lite-weight test-automatisering i antingen Python, C#, Java, eller extern språk
